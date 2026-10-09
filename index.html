@@ -365,10 +365,11 @@ await oniMarkImage.decode().catch(() => {});
 for (const holder of document.querySelectorAll('.agency-mark')) {
   const img = new Image(); img.src = ONI_MARK_SRC; img.alt = ''; holder.append(img);
 }
-function drawAgencyMark(g, x, y, size, ink = '#69788c') {
+function drawAgencyMark(g, x, y, size, ink = '#69788c', imageFilter = 'none') {
   g.save();
   g.strokeStyle = ink; g.lineWidth = size * 0.025;
   g.beginPath(); g.arc(x, y, size * 0.46, 0, TAU); g.stroke();
+  g.filter = imageFilter;
   if (oniMarkImage.naturalWidth) g.drawImage(oniMarkImage, x - size * 0.44, y - size * 0.44, size * 0.88, size * 0.88);
   g.restore();
 }
@@ -1283,6 +1284,24 @@ function drawTears(g, cx, ey, ex, alpha) {
     g.beginPath(); g.ellipse(x0 + sx * 7, y0 + 118, 6, 8, 0, 0, TAU); g.fill();
   }
 }
+// 무광의 반쯤 감긴 군중 눈: 바깥 눈꼬리와 윗눈꺼풀이 아래로 처진다.
+function drawCrowdDeadEyes(g, cx, ey, ex) {
+  const ink = '#2a1d26';
+  for (const sx of [-1, 1]) {
+    const x = cx + sx * ex, inner = x - sx * 20, outer = x + sx * 20;
+    g.save();
+    g.beginPath(); g.moveTo(inner, ey - 3);
+    g.quadraticCurveTo(x, ey + 1, outer, ey + 8);
+    g.quadraticCurveTo(x, ey + 24, inner, ey + 13); g.closePath();
+    g.fillStyle = '#ddd6da'; g.fill(); g.clip();
+    g.fillStyle = ink; g.beginPath(); g.ellipse(x, ey + 12, 8, 11, 0, 0, TAU); g.fill();
+    g.restore();
+    g.strokeStyle = ink; g.lineWidth = 7;
+    g.beginPath(); g.moveTo(inner, ey - 3); g.quadraticCurveTo(x, ey + 1, outer, ey + 8); g.stroke();
+    g.strokeStyle = 'rgba(70, 45, 58, 0.3)'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(inner + sx * 3, ey + 20); g.quadraticCurveTo(x, ey + 28, outer - sx * 2, ey + 22); g.stroke();
+  }
+}
 function drawCrowdFace(g, ox, oy, st) {
   g.save(); g.translate(ox, oy);
   g.fillStyle = '#ffffff'; g.fillRect(0, 0, 256, 256);
@@ -1328,23 +1347,12 @@ function drawCrowdFace(g, ox, oy, st) {
       g.lineWidth = 4; g.beginPath(); g.moveTo(x + sx * 17, ey + 1); g.lineTo(x + sx * 24, ey + 5); g.stroke(); g.lineWidth = 7;
     }
   } else {
+    drawCrowdDeadEyes(g, cx, ey, ex);
     for (const sx of [-1, 1]) {
       const x = cx + sx * ex;
-      g.fillStyle = '#ffffff'; g.beginPath(); g.ellipse(x, ey + 1, 20, 21, 0, 0, TAU); g.fill();
-      g.fillStyle = '#2b1c24'; g.beginPath(); g.ellipse(x, ey + 3, 15, 17.5, 0, 0, TAU); g.fill();
-      g.fillStyle = '#4c3440'; g.beginPath(); g.ellipse(x, ey + 9, 11, 8, 0, 0, Math.PI); g.fill();
-      g.fillStyle = '#ffffff';
-      g.beginPath(); g.ellipse(x - 5.5, ey - 5, 6, 7, -0.3, 0, TAU); g.fill();
-      g.beginPath(); g.arc(x + 6, ey + 8, 3, 0, TAU); g.fill();
-      // 고인 눈물
-      g.fillStyle = 'rgba(110, 200, 255, 0.8)';
-      g.beginPath(); g.moveTo(x - 20, ey + 6); g.quadraticCurveTo(x, ey + 30, x + 20, ey + 6); g.quadraticCurveTo(x, ey + 17, x - 20, ey + 6); g.fill();
-      g.fillStyle = 'rgba(255, 255, 255, 0.9)';
-      g.beginPath(); g.ellipse(x - 8, ey + 14, 4, 2, 0.2, 0, TAU); g.fill();
-      // 처진 윗눈꺼풀
-      g.strokeStyle = ink; g.lineWidth = 6.5;
-      const inner = x - sx * 20, outer = x + sx * 21;
-      g.beginPath(); g.moveTo(inner, ey - 15); g.quadraticCurveTo(x, ey - 25, outer, ey - 5); g.stroke();
+      // 고인 눈물에도 흰 반사광을 넣지 않는다.
+      g.fillStyle = 'rgba(110, 200, 255, 0.65)';
+      g.beginPath(); g.moveTo(x - 18, ey + 12); g.quadraticCurveTo(x, ey + 28, x + 18, ey + 12); g.quadraticCurveTo(x, ey + 22, x - 18, ey + 12); g.fill();
     }
   }
   // 눈물 줄기
@@ -1375,11 +1383,10 @@ function drawCrowdNeutralFace(g, ox, oy) {
   g.fillStyle = '#ffffff'; g.fillRect(0, 0, 256, 256);
   const ink = '#2a1d26';
   g.strokeStyle = ink; g.lineCap = 'round'; g.lineWidth = 6;
-  // 눈물·홍조 없이 반쯤 뜬 눈과 일자로 다문 입.
+  // 눈물·홍조 없이 처진 죽은 눈과 일자로 다문 입.
+  drawCrowdDeadEyes(g, 128, 120, 40);
+  g.strokeStyle = ink; g.lineWidth = 6;
   for (const x of [88, 168]) {
-    g.fillStyle = '#ffffff'; g.beginPath(); g.ellipse(x, 122, 20, 12, 0, 0, TAU); g.fill();
-    g.fillStyle = ink; g.beginPath(); g.ellipse(x, 125, 10, 9, 0, 0, TAU); g.fill();
-    g.beginPath(); g.moveTo(x - 21, 112); g.lineTo(x + 21, 112); g.stroke();
     g.beginPath(); g.moveTo(x - 18, 88); g.lineTo(x + 18, 88); g.stroke();
   }
   g.strokeStyle = 'rgba(120, 75, 70, 0.45)'; g.lineWidth = 3;
@@ -1537,7 +1544,7 @@ function makeBadgeTex() {
     g.clearRect(0, 0, 256, 128);
     g.fillStyle = '#ffffff'; g.strokeStyle = '#1e2a4a'; g.lineWidth = 8;
     g.beginPath(); g.roundRect ? g.roundRect(6, 6, 244, 116, 16) : g.rect(6, 6, 244, 116); g.fill(); g.stroke();
-    drawAgencyMark(g, 40, 64, 48, '#1e2a4a');
+    drawAgencyMark(g, 40, 64, 48, '#1e2a4a', 'brightness(0.58) contrast(1.35)');
     g.fillStyle = '#1e2a4a'; g.font = '700 32px "Noto Sans KR", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillText('정신건강', 151, 44);
     g.fillStyle = '#d3122c'; g.font = '400 52px "Black Han Sans", "Noto Sans KR", sans-serif';
@@ -1658,7 +1665,7 @@ function makeAllyBadgeAtlas() {
       const y = k * 128;
       g.fillStyle = '#ffffff'; g.strokeStyle = '#1e2a4a'; g.lineWidth = 8;
       g.beginPath(); g.roundRect ? g.roundRect(6, y + 6, 244, 116, 16) : g.rect(6, y + 6, 244, 116); g.fill(); g.stroke();
-      drawAgencyMark(g, 40, y + 64, 48, '#1e2a4a');
+      drawAgencyMark(g, 40, y + 64, 48, '#1e2a4a', 'brightness(0.58) contrast(1.35)');
       g.fillStyle = '#1e2a4a'; g.font = '700 32px "Noto Sans KR", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillText('정신건강', 151, y + 44);
       g.fillStyle = '#d3122c'; g.font = '400 52px "Black Han Sans", "Noto Sans KR", sans-serif';
@@ -2182,7 +2189,7 @@ function mePart(geo, mat, parent, outline = true) {
   if (outline) { const o = new THREE.Mesh(geo, OUT_MAT); o.castShadow = false; m.add(o); }
   return m;
 }
-const ME_PARTS = {};
+const ME_PARTS = { hands: [] };
 (() => {
   // 셔츠 몸통 (텍스처: 단추, 피)
   shirtTex = texOf(shirtCanvas); drawShirt();
@@ -2233,7 +2240,7 @@ const ME_PARTS = {};
     const ua = G3.cap(0.066, 0.13, 12); ua.translate(0, -0.1, 0); mePart(ua, shirtPlain, s);
     const fa = G3.cap(0.06, 0.11, 12); fa.translate(0, -0.09, 0); mePart(fa, shirtPlain, e);
     const cuff = new THREE.CylinderGeometry(0.066, 0.066, 0.035, 12); cuff.translate(0, -0.17, 0); mePart(cuff, meMat.white, e, false);
-    const hd = G3.sphere(0.068, 12, 10); hd.translate(0, -0.035, 0); mePart(hd, meMat.skin, w);
+    const hd = G3.sphere(0.068, 12, 10); hd.translate(0, -0.035, 0); ME_PARTS.hands.push(mePart(hd, meMat.skin, w));
   }
   // 다리
   for (const [h, k, a] of [[MR.hipL, MR.knL, MR.anL], [MR.hipR, MR.knR, MR.anR]]) {
@@ -2268,14 +2275,26 @@ const GUN_G = pistolGeo();
 const KNIFE_G = knifeGeo();
 const HANDLE_G = (() => { const g = new THREE.BoxGeometry(0.03, 0.1, 0.034); g.translate(0, -0.05, 0); return g; })();
 const GUNS = [];
+const TITLE_HANDS = [];
 const KNIVES = [];
 const MUZZLE_LOCAL = new THREE.Vector3(0, 0.035 * GUN_SCALE, 0.17 * GUN_SCALE - GUN_BACK);
-for (const w of [MR.wrL, MR.wrR]) {
+for (const [h, w] of [MR.wrL, MR.wrR].entries()) {
   const holder = new THREE.Object3D(); holder.position.set(0, -0.04, 0.0); holder.rotation.x = Math.PI / 2; w.add(holder);
   const gun = new THREE.Group(); holder.add(gun);
   const gTop = new THREE.Mesh(GUN_G.top, meMat.gunHi); gTop.castShadow = true; gun.add(gTop); gTop.add(new THREE.Mesh(GUN_G.top, OUT_MAT));
   const gLow = new THREE.Mesh(GUN_G.low, meMat.gun); gLow.castShadow = true; gun.add(gLow); gLow.add(new THREE.Mesh(GUN_G.low, OUT_MAT));
   GUNS.push(gun);
+  // 타이틀에서 손잡이를 감싸는 주먹: 손바닥, 접힌 네 손가락, 엄지.
+  const palm = G3.ell(0.048, 0.053, 0.037, 12, 10); palm.translate(0, -0.06, -0.077);
+  const gripParts = [palm];
+  for (let f = 0; f < 4; f++) {
+    const finger = G3.ell(0.044, 0.0105, 0.027, 10, 8);
+    finger.translate(0, -0.026 - f * 0.020, -0.031); gripParts.push(finger);
+  }
+  const thumb = G3.ell(0.020, 0.034, 0.024, 10, 8), thumbSide = h === 0 ? 1 : -1;
+  thumb.rotateZ(thumbSide * 0.45); thumb.translate(thumbSide * 0.041, -0.041, -0.059); gripParts.push(thumb);
+  const gripHand = mePart(mergeGeos(gripParts), meMat.skin, gun);
+  gripHand.visible = false; TITLE_HANDS.push(gripHand);
   const kh = new THREE.Object3D(); kh.position.set(0, -0.04, 0); kh.rotation.x = Math.PI / 2; w.add(kh);
   const blade = new THREE.Mesh(KNIFE_G, meMat.blade); blade.rotation.x = Math.PI / 2; blade.position.z = 0.03; kh.add(blade);
   const bo = new THREE.Mesh(KNIFE_G, OUT_MAT); blade.add(bo);
@@ -4934,7 +4953,11 @@ function mePosterAnimate(dt) {
   }
   if (T.aim !== 0 && AL.gun) pointWrist(MR.wrL, TOOL_DOWN, AL.gun, T.yaw, GUN_SIDE);
   if (T.aim !== 1 && AR.gun) pointWrist(MR.wrR, TOOL_DOWN, AR.gun, T.yaw, GUN_SIDE);
-  for (const h of [0, 1]) { GUNS[h].visible = true; KNIVES[h].visible = false; }
+  // 포스터에서는 손잡이 중심이 주먹 안에 오도록 총만 손에 맞춘다.
+  for (const h of [0, 1]) {
+    GUNS[h].position.set(0, 0.064, 0.057); GUNS[h].visible = true; KNIVES[h].visible = false;
+    ME_PARTS.hands[h].visible = false; TITLE_HANDS[h].visible = true;
+  }
   MR.root.updateMatrixWorld(true);
   meSparkles(dt);
 }
@@ -4958,6 +4981,7 @@ function deepMerge(dst, src) {
   return dst;
 }
 function posterLayout() {
+  resetWrists();
   clearCrowd(); persons.length = 0; live.length = 0; aliveCount = 0;
   // 세로 화면과 가로 화면은 구도를 따로 씀
   const T = POSTER.C = deepMerge(JSON.parse(JSON.stringify(POSTER.T)), posterPort() ? POSTER.T.port : POSTER.T.land);
@@ -5041,6 +5065,7 @@ function certNo() { const d = new Date(); return `제 20XX-${String(4000 + ((d.g
 function resetWorld() {
   clearItems();
   POSTER.on = false;
+  for (const h of [0, 1]) { GUNS[h].position.set(0, 0, 0); ME_PARTS.hands[h].visible = true; TITLE_HANDS[h].visible = false; }
   resetWrists();
   SEQ = []; typers.length = 0;
   stopAllVoices(); clearBubbles();
