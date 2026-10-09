@@ -2837,7 +2837,7 @@ function newPerson(x, z, opt = {}) {
     phase: rand(0, TAU), seed: rand(0, 100),
     pose: new Float32Array(NPOSE), tgt: new Float32Array(NPOSE), tmp: new Float32Array(NPOSE),
     reach: 0, rise: 0, look: 0, noticeT: -1,
-    faceSet: -1, speakCD: rand(0.4, 2.6), vo: null, bubble: null,
+    faceSet: -1, speakCD: rand(0.4, 2.6), pleaCD: 0, vo: null, bubble: null,
     voiceKey: kind === 1 ? pick(G_KEYS) : pick(F_KEYS), vrate: rand(0.93, 1.07),
     slot: -1, clingT: 0, cx0: 0, cz0: 0, host: opt.host || ME, hostT: rand(0, 0.5), fly: 0,
     dieT: 0, fallT: 0.5, back: true, fallRoll: 0, kbx: 0, kbz: 0, spin: 0, corpse: null, landed: false, how: '',
@@ -3159,6 +3159,7 @@ function speechTick(p, dt, d) {
     setFace(p, talking && Math.sin(G.t * 19 + p.seed) > -0.2 ? 1 : 0);
   }
   if (G.freeze) return;
+  pleaBubbleTick(p, dt, d);
   p.speakCD -= dt;
   if (p.speakCD > 0) return;
   const cling = p.state === 'cling', mine = p.host === ME;
@@ -3171,9 +3172,7 @@ function speechTick(p, dt, d) {
   const h = playVoice(VO[key] ? key : p.voiceKey, { rate: p.vrate * (cling ? 0.96 : 1), gain: vol, pan, sob: cling ? 0.012 : 0.028, lp: cling && mine ? 2600 : (d > 8 ? 2200 : 0) });
   if (!h) return;
   p.vo = h;
-  const txt = cling ? '친구해주세요…' : (p.kind === 1 ? '친구해주세요!' : '친구해주세요…');
-  // 내게 매달린 사람은 말풍선 없음 (얼굴을 가림). 동료에게 매달린 사람은 보여 줌
-  if ((!cling || !mine || p.socialPlea) && bubbleCount() < (cling ? 4 : 5) && onScreen(p.hx, p.hy, p.hz)) p.bubble = makeBubble(p, txt, h, '');
+  if (p.bubble && p.bubble.plea && !p.bubble.ending && p.bubble.t < 0.05) { p.bubble.voice = h; p.bubble.dur = h.dur; }
   p.socialPlea = false;
 }
 function tearTick(p, dt, d) {
@@ -3339,8 +3338,36 @@ function spawnRing(n0) {
     if (p) p.speakCD = rand(0.5, 3);
   }
 }
+function recycleFarChaser(pos) {
+  // 정기 단일 생성이 막힐 때만 뒤처진 추격자 한 명을 옮긴다.
+  // 같은 사람의 속도·종류·외형·인원·슬롯을 보존하며, 큰 웨이브의 정원은 비우지 않는다.
+  let p = null, far2 = 32 * 32;
+  for (const q of live) {
+    if (q.state !== 'chase') continue;
+    const dx = q.x - ME.x, dz = q.z - ME.z, d2 = dx * dx + dz * dz;
+    if (d2 <= far2 || onScreen(q.x, 1.4, q.z)) continue;
+    if (q.host !== ME && hostActive(q.host) && Math.hypot(q.x - q.host.x, q.z - q.host.z) < 8) continue;
+    p = q; far2 = d2;
+  }
+  if (!p) return null;
+  if (p.vo && !p.vo.stopped) p.vo.stop(0.05);
+  p.vo = null;
+  if (p.bubble) removeBubble(p.bubble);
+  const dx = pos.x - p.x, dz = pos.z - p.z;
+  p.x = pos.x; p.z = pos.z;
+  p.hx += dx; p.hz += dz; p.tx += dx; p.tz += dz;
+  p.e1x += dx; p.e1z += dz; p.e2x += dx; p.e2z += dz;
+  p.vx = p.vz = p.spd = 0;
+  p.yaw = Math.atan2(ME.x - p.x, ME.z - p.z);
+  p.host = ME; p.hostT = 0.35;
+  p.speakCD = Math.max(1.5, p.speakCD); p.pleaCD = 0;
+  return p;
+}
 function spawnOne(kind, angle) {
-  if (aliveCount >= maxAlive()) return null;
+  if (aliveCount >= maxAlive()) {
+    const a = angle === undefined ? spawnAngle() : angle;
+    return recycleFarChaser(spawnRingPos(a));
+  }
   const a = angle === undefined ? spawnAngle() : angle;
   const pos = spawnRingPos(a);
   const p = newPerson(pos.x, pos.z, { kind, state: 'chase', yaw: Math.atan2(ME.x - pos.x, ME.z - pos.z) });
@@ -4443,11 +4470,24 @@ function alliesAnimate(dt) {
 const bubbleLayer = $('bubbles');
 const bubbles = new Set();
 function bubbleCount() { let n = 0; for (const b of bubbles) if (!b.ending) n++; return n; }
+function pleaBubbleTick(p, dt, d) {
+  // 말풍선은 음성 슬롯이 차 있어도 표시하되, 게임의 난수는 소비하지 않는다.
+  p.pleaCD = Math.max(0, (p.pleaCD || 0) - dt);
+  if (p.pleaCD > 0 || d > 14 || (p.bubble && !p.bubble.ending)) return;
+  const cling = p.state === 'cling', mine = p.host === ME;
+  if (cling && mine && !p.socialPlea) return;
+  if (!onScreen(p.hx, p.hy + 0.18, p.hz) || _sc.y < 56 || _sc.y > VH - 55 || _sc.x < 4 || _sc.x > VW - 4) return;
+  if (bubbleCount() >= (cling ? 4 : 5)) return;
+  if (p.bubble) removeBubble(p.bubble);
+  const txt = cling ? '친구해주세요…' : (p.kind === 1 ? '친구해주세요!' : '친구해주세요…');
+  p.bubble = makeBubble(p, txt, null, 'plea', 1.4);
+  p.pleaCD = 2 + (p.seed % 1);
+}
 function makeBubble(owner, text, voice, cls = '', fixedDur = 0) {
   const wrap = document.createElement('div'); wrap.className = 'bwrap';
   const el = document.createElement('div'); el.className = 'bubble ' + cls;
   wrap.appendChild(el); bubbleLayer.appendChild(wrap);
-  const b = { owner, text, voice, wrap, el, t: 0, dur: voice ? voice.dur : fixedDur, shown: 0, ending: false, et: 0 };
+  const b = { owner, text, voice, wrap, el, t: 0, dur: voice ? voice.dur : fixedDur, shown: 0, plea: cls === 'plea', ending: false, et: 0 };
   bubbles.add(b);
   return b;
 }
@@ -4476,6 +4516,7 @@ function updateBubbles(dt) {
     const y = o === ME ? 1.75 : o.hy + 0.18;
     const x = o === ME ? ME.x : o.hx, z = o === ME ? ME.z : o.hz;
     toScreen(x, y, z, _bs);
+    if (b.plea && (_bs.z < -1 || _bs.z > 1 || _bs.x < -40 || _bs.x > VW + 40 || _bs.y < 0 || _bs.y > VH + 40)) { removeBubble(b); continue; }
     if (_bs.z > 1) { b.wrap.style.visibility = 'hidden'; continue; }
     b.wrap.style.visibility = '';
     if (b.wcache !== b.shown) { b.wcache = b.shown; b.hw = b.el.offsetWidth / 2; }
