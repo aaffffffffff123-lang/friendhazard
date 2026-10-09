@@ -204,6 +204,7 @@ body { font-family: var(--font-sans); word-break: keep-all; overflow-wrap: anywh
 .bubble { position: absolute; left: 0; bottom: 8px; transform: translateX(-50%); padding: 5px 10px 6px; background: #fff; border: 2px solid var(--ink); border-radius: 13px; font-weight: 700; font-size: 13.5px; line-height: 1.25; color: var(--ink); white-space: nowrap; }
 .bubble::after { content: ""; position: absolute; left: 50%; bottom: -6px; width: 9px; height: 9px; background: #fff; border-right: 2px solid var(--ink); border-bottom: 2px solid var(--ink); transform: translateX(-50%) rotate(45deg); }
 .bubble.big { font-size: 16px; font-weight: 900; padding: 7px 13px 8px; }
+.bubble.refusal { font-size: clamp(20px, 5vw, 26px); }
 .bubble.soft { border-color: rgba(31, 26, 36, 0.55); color: var(--ink-2); font-size: 12px; }
 .bubble.soft::after { border-color: rgba(31, 26, 36, 0.55); }
 .bubble.cut { color: var(--blood); border-color: var(--blood); animation: bcut .5s ease-out forwards; }
@@ -4524,7 +4525,7 @@ function updateBubbles(dt) {
     if (b.ending) { b.et += dt; if (b.et > 0.55) { removeBubble(b); continue; } }
     else {
       const prog = b.voice ? b.voice.progress() : clamp(b.t / b.dur, 0, 1);
-      const n = clamp(Math.floor(prog * 1.12 * b.text.length) + 1, 1, b.text.length);
+      const n = b.instant ? b.text.length : clamp(Math.floor(prog * 1.12 * b.text.length) + 1, 1, b.text.length);
       if (n !== b.shown) { b.shown = n; b.el.textContent = b.text.slice(0, n); }
       if (b.t > b.dur + 0.45 || (b.voice && b.voice.stopped && b.t > 0.2 && b.shown >= b.text.length)) { fadeBubble(b); }
     }
@@ -4538,7 +4539,8 @@ function updateBubbles(dt) {
     b.wrap.style.visibility = '';
     if (b.wcache !== b.shown) { b.wcache = b.shown; b.hw = b.el.offsetWidth / 2; }
     const bx = clamp(_bs.x, b.hw + 6, VW - b.hw - 6);
-    b.wrap.style.transform = `translate3d(${bx.toFixed(1)}px, ${Math.max(_bs.y, 44).toFixed(1)}px, 0)`;
+    const by = Math.max(_bs.y, b.instant ? b.el.offsetHeight + 14 : 44);
+    b.wrap.style.transform = `translate3d(${bx.toFixed(1)}px, ${by.toFixed(1)}px, 0)`;
   }
 }
 
@@ -5177,8 +5179,12 @@ function startEnding() {
   runSeq([
     [0.7, () => setCam('end', 2.4)],
     [2.9, () => { bigSparkle(); sfxSparkle(1); }],
-    [3.4, () => { playVoice('p_no', { gain: 1.0, verb: 0.12 }); showSub('싫어.'); }],
-    [4.9, () => { hideSub(); showResult(); }],
+    [3.4, () => {
+      playVoice('p_no', { gain: 1.0, verb: 0.12 });
+      const b = makeBubble(ME, '싫어.', null, 'big refusal', 1.5);
+      b.instant = true;
+    }],
+    [4.9, () => { clearBubbles(); hideSub(); showResult(); }],
   ]);
 }
 // 끝 화면: 거절한 횟수를 세어 올린 뒤 다시하기
