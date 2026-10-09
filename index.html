@@ -365,11 +365,10 @@ await oniMarkImage.decode().catch(() => {});
 for (const holder of document.querySelectorAll('.agency-mark')) {
   const img = new Image(); img.src = ONI_MARK_SRC; img.alt = ''; holder.append(img);
 }
-function drawAgencyMark(g, x, y, size, ink = '#69788c', imageFilter = 'none') {
+function drawAgencyMark(g, x, y, size, ink = '#69788c') {
   g.save();
   g.strokeStyle = ink; g.lineWidth = size * 0.025;
   g.beginPath(); g.arc(x, y, size * 0.46, 0, TAU); g.stroke();
-  g.filter = imageFilter;
   if (oniMarkImage.naturalWidth) g.drawImage(oniMarkImage, x - size * 0.44, y - size * 0.44, size * 0.88, size * 0.88);
   g.restore();
 }
@@ -1544,7 +1543,7 @@ function makeBadgeTex() {
     g.clearRect(0, 0, 256, 128);
     g.fillStyle = '#ffffff'; g.strokeStyle = '#1e2a4a'; g.lineWidth = 8;
     g.beginPath(); g.roundRect ? g.roundRect(6, 6, 244, 116, 16) : g.rect(6, 6, 244, 116); g.fill(); g.stroke();
-    drawAgencyMark(g, 40, 64, 48, '#1e2a4a', 'brightness(0.58) contrast(1.35)');
+    drawAgencyMark(g, 40, 64, 48, '#1e2a4a');
     g.fillStyle = '#1e2a4a'; g.font = '700 32px "Noto Sans KR", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillText('정신건강', 151, 44);
     g.fillStyle = '#d3122c'; g.font = '400 52px "Black Han Sans", "Noto Sans KR", sans-serif';
@@ -1665,7 +1664,7 @@ function makeAllyBadgeAtlas() {
       const y = k * 128;
       g.fillStyle = '#ffffff'; g.strokeStyle = '#1e2a4a'; g.lineWidth = 8;
       g.beginPath(); g.roundRect ? g.roundRect(6, y + 6, 244, 116, 16) : g.rect(6, y + 6, 244, 116); g.fill(); g.stroke();
-      drawAgencyMark(g, 40, y + 64, 48, '#1e2a4a', 'brightness(0.58) contrast(1.35)');
+      drawAgencyMark(g, 40, y + 64, 48, '#1e2a4a');
       g.fillStyle = '#1e2a4a'; g.font = '700 32px "Noto Sans KR", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillText('정신건강', 151, y + 44);
       g.fillStyle = '#d3122c'; g.font = '400 52px "Black Han Sans", "Noto Sans KR", sans-serif';
@@ -2276,6 +2275,7 @@ const KNIFE_G = knifeGeo();
 const HANDLE_G = (() => { const g = new THREE.BoxGeometry(0.03, 0.1, 0.034); g.translate(0, -0.05, 0); return g; })();
 const GUNS = [];
 const TITLE_HANDS = [];
+const titleGripSide = new THREE.Vector3(), titleGripView = new THREE.Vector3();
 const KNIVES = [];
 const MUZZLE_LOCAL = new THREE.Vector3(0, 0.035 * GUN_SCALE, 0.17 * GUN_SCALE - GUN_BACK);
 for (const [h, w] of [MR.wrL, MR.wrR].entries()) {
@@ -2284,15 +2284,15 @@ for (const [h, w] of [MR.wrL, MR.wrR].entries()) {
   const gTop = new THREE.Mesh(GUN_G.top, meMat.gunHi); gTop.castShadow = true; gun.add(gTop); gTop.add(new THREE.Mesh(GUN_G.top, OUT_MAT));
   const gLow = new THREE.Mesh(GUN_G.low, meMat.gun); gLow.castShadow = true; gun.add(gLow); gLow.add(new THREE.Mesh(GUN_G.low, OUT_MAT));
   GUNS.push(gun);
-  // 타이틀에서 손잡이를 감싸는 주먹: 손바닥, 접힌 네 손가락, 엄지.
-  const palm = G3.ell(0.048, 0.053, 0.037, 12, 10); palm.translate(0, -0.06, -0.077);
+  // 카메라에 보이는 손잡이 옆면을 이어진 손바닥과 손가락으로 감싼다.
+  const palm = G3.ell(0.050, 0.050, 0.047, 16, 12); palm.translate(0.026, -0.065, -0.070);
   const gripParts = [palm];
   for (let f = 0; f < 4; f++) {
-    const finger = G3.ell(0.044, 0.0105, 0.027, 10, 8);
-    finger.translate(0, -0.026 - f * 0.020, -0.031); gripParts.push(finger);
+    const finger = G3.ell(0.051, 0.018, 0.045, 14, 10);
+    finger.translate(0.025, -0.027 - f * 0.022, -0.038); gripParts.push(finger);
   }
-  const thumb = G3.ell(0.020, 0.034, 0.024, 10, 8), thumbSide = h === 0 ? 1 : -1;
-  thumb.rotateZ(thumbSide * 0.45); thumb.translate(thumbSide * 0.041, -0.041, -0.059); gripParts.push(thumb);
+  const thumb = G3.ell(0.027, 0.018, 0.042, 14, 10);
+  thumb.rotateX(-0.25); thumb.translate(0.066, -0.028, -0.055); gripParts.push(thumb);
   const gripHand = mePart(mergeGeos(gripParts), meMat.skin, gun);
   gripHand.visible = false; TITLE_HANDS.push(gripHand);
   const kh = new THREE.Object3D(); kh.position.set(0, -0.04, 0); kh.rotation.x = Math.PI / 2; w.add(kh);
@@ -4956,6 +4956,10 @@ function mePosterAnimate(dt) {
   // 포스터에서는 손잡이 중심이 주먹 안에 오도록 총만 손에 맞춘다.
   for (const h of [0, 1]) {
     GUNS[h].position.set(0, 0.064, 0.057); GUNS[h].visible = true; KNIVES[h].visible = false;
+    GUNS[h].updateWorldMatrix(true, false);
+    titleGripSide.setFromMatrixColumn(GUNS[h].matrixWorld, 0);
+    titleGripView.setFromMatrixPosition(GUNS[h].matrixWorld).negate().add(POSTER.camPos);
+    TITLE_HANDS[h].scale.x = titleGripSide.dot(titleGripView) >= 0 ? 1 : -1;
     ME_PARTS.hands[h].visible = false; TITLE_HANDS[h].visible = true;
   }
   MR.root.updateMatrixWorld(true);
