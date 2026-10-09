@@ -597,6 +597,22 @@ function sfxTink(v = 1, pan = 0) {
     o.connect(g).connect(out); o.start(t); o.stop(t + d + 0.05);
   }
 }
+// 아이템 획득 '띠리링': 탄피 예산과 전투 효과음 제한에 묻히지 않는 짧은 상승음.
+function sfxItemPickup() {
+  if (!ok() || (MUTED && !OFFLINE)) return;
+  const t = ac.currentTime + 0.002, out = outChain(0.48, 0, 0), nodes = [];
+  [[1318.51, 0, 0.07], [1760, 0.075, 0.07], [2637.02, 0.15, 0.16]].forEach(([f, d, decay], i) => {
+    const tt = t + d;
+    const o = oscN('triangle', f), g = gainN(0);
+    const overtone = oscN('sine', f * 2), overtoneGain = gainN(0);
+    envAD(g.gain, tt, 0.002, 0.68, decay);
+    envAD(overtoneGain.gain, tt, 0.001, 0.14, decay * 0.65);
+    o.connect(g).connect(out); overtone.connect(overtoneGain).connect(out);
+    nodes.push(o, g, overtone, overtoneGain);
+    o.start(tt); overtone.start(tt); o.stop(tt + decay + 0.025); overtone.stop(tt + decay + 0.025);
+    if (i === 2) o.onended = () => { for (const n of nodes) n.disconnect(); out.disconnect(); };
+  });
+}
 function sfxFlesh(v = 1, pan = 0) {
   if (!sfxGate(1, 0.14)) return;
   const t = ac.currentTime + 0.004;
@@ -1200,7 +1216,7 @@ async function audioOfflineTest(sec, events) {
   sfxEnds.length = 0; sfxWinT = -1;
   // 오프라인 컨텍스트는 currentTime이 0에 멈춰 있으므로, 시간 지정이 필요한 것은 suspend로 끊어서 실행
   const fns = { gun: () => sfxGun(0), flesh: () => sfxFlesh(1), fall: () => sfxFall(1), stab: () => sfxStab(0), grab: () => sfxGrab(0), stamp: () => sfxStamp(), sparkle: () => sfxSparkle(1), impact: () => sfxImpact(ac.currentTime), tink: () => sfxTink(1), type: () => sfxType(), splat: () => sfxSplat(1),
-    swing: () => sfxSwing(0), bat: () => sfxBat(0), clap: () => sfxClap(), chime: () => sfxChime(), pno: () => playVoice('p_no', { verb: 0.12 }), heart: () => sfxHeart(1),
+    swing: () => sfxSwing(0), bat: () => sfxBat(0), clap: () => sfxClap(), chime: () => sfxChime(), pickup: () => sfxItemPickup(), pno: () => playVoice('p_no', { verb: 0.12 }), heart: () => sfxHeart(1),
     voice: (k) => playVoice(k || 'f_F2', { sob: 0.028 }), pline: () => playVoice('p_line', { verb: 0.12 }), music: () => { musicStart(ac.currentTime + 0.01, 32); }, musicStop: () => musicStop(true) };
   // 같은 시각(렌더 단위)에 suspend를 두 번 걸 수 없어서 묶어서 건다
   const groups = new Map();
@@ -2668,12 +2684,13 @@ const CARE_SLOGANS = [
   '마음이 건강한 사람을 곁에 두세요',
   '나를 아프게 하는 관계는 정리하세요',
 ];
+const CARE_POSTER_VARIANTS = 4;
 function makeCarePosterAtlas(existing) {
-  const c = document.createElement('canvas'); c.width = 1536; c.height = 768;
+  const c = document.createElement('canvas'); c.width = 512 * CARE_POSTER_VARIANTS; c.height = 768;
   const g = c.getContext('2d');
   const lines = [['건강한 인간관계가', '당신을 건강하게', '합니다.'], ['마음이 건강한', '사람을', '곁에 두세요'], ['나를 아프게 하는', '관계는', '정리하세요']];
-  const colors = ['#37658b', '#5c7869', '#9b5b60'];
-  for (let k = 0; k < 3; k++) {
+  const colors = ['#37658b', '#5c7869', '#9b5b60', '#69788c'];
+  for (let k = 0; k < CARE_POSTER_VARIANTS; k++) {
     const x = k * 512;
     g.save(); g.translate(x, 0);
     g.shadowColor = '#26253638'; g.shadowBlur = 13; g.shadowOffsetX = 4; g.shadowOffsetY = 8;
@@ -2681,19 +2698,32 @@ function makeCarePosterAtlas(existing) {
     g.shadowColor = 'transparent';
     const paper = g.createLinearGradient(24, 23, 488, 729); paper.addColorStop(0, '#fffdf7'); paper.addColorStop(0.58, '#fdfaf0'); paper.addColorStop(1, '#ece9df');
     g.fillStyle = paper; g.fill(); g.strokeStyle = '#d4d0c7'; g.lineWidth = 2; g.stroke();
-    g.fillStyle = colors[k]; g.fillRect(54, 70, 10, 35);
-    g.font = '700 24px "Noto Sans KR", "Malgun Gothic", sans-serif'; g.textAlign = 'left'; g.fillText('정신건강 캠페인', 80, 97);
-    g.strokeStyle = colors[k]; g.lineWidth = 2; g.beginPath(); g.moveTo(54, 132); g.lineTo(453, 132); g.stroke();
-    g.textAlign = 'center'; g.fillStyle = '#252d35'; g.font = '900 43px "Noto Sans KR", "Malgun Gothic", sans-serif';
-    for (let j = 0; j < lines[k].length; j++) g.fillText(lines[k][j], 256, 266 + j * 75);
-    // 두 사람 그림. 마지막 포스터에는 둘 사이를 가르는 단선이 인쇄되어 있다.
-    g.strokeStyle = colors[k]; g.lineWidth = 9; g.lineCap = 'round';
-    for (const px of [192, 320]) { g.beginPath(); g.arc(px, 519, 23, 0, TAU); g.stroke(); g.beginPath(); g.moveTo(px, 546); g.lineTo(px, 593); g.moveTo(px - 32, 567); g.lineTo(px + 32, 567); g.moveTo(px, 593); g.lineTo(px - 25, 628); g.moveTo(px, 593); g.lineTo(px + 25, 628); g.stroke(); }
-    g.beginPath(); if (k === 2) { g.moveTo(263, 530); g.lineTo(248, 610); } else { g.moveTo(224, 567); g.lineTo(288, 567); } g.stroke();
-    // 하단의 작은 발행기관 표식. 포스터 크기와 본문은 그대로 둔다.
-    drawAgencyMark(g, 427, 680, 46, colors[k]);
-    g.fillStyle = colors[k]; g.font = '700 16px "Noto Sans KR", "Malgun Gothic", sans-serif'; g.textAlign = 'left';
-    g.fillText('국가정신건강등급심사원', 58, 687);
+    if (k === 3) {
+      // 캠페인 종이 사이에 드물게 섞이는 평범한 연구소 광고.
+      g.fillStyle = '#e8edf2'; g.fillRect(54, 70, 399, 64);
+      g.fillStyle = colors[k]; g.textAlign = 'center';
+      g.font = '700 24px Arial, sans-serif'; g.fillText('ESTEEM LAB', 256, 111);
+      g.fillStyle = '#252d35'; g.font = '900 62px "Noto Sans KR", "Malgun Gothic", sans-serif'; g.fillText('에스팀랩', 256, 248);
+      g.fillStyle = colors[k]; g.font = '700 31px "Noto Sans KR", "Malgun Gothic", sans-serif'; g.fillText('자존감 연구소', 256, 305);
+      g.fillStyle = '#e8edf2'; g.beginPath(); g.arc(256, 479, 113, 0, TAU); g.fill();
+      drawAgencyMark(g, 256, 479, 216, colors[k]);
+      g.strokeStyle = '#c7cfd7'; g.lineWidth = 2; g.beginPath(); g.moveTo(96, 644); g.lineTo(416, 644); g.stroke();
+      g.fillStyle = colors[k]; g.font = '700 19px Arial, sans-serif'; g.fillText('ESTEEM LAB', 256, 687);
+    } else {
+      g.fillStyle = colors[k]; g.fillRect(54, 70, 10, 35);
+      g.font = '700 24px "Noto Sans KR", "Malgun Gothic", sans-serif'; g.textAlign = 'left'; g.fillText('정신건강 캠페인', 80, 97);
+      g.strokeStyle = colors[k]; g.lineWidth = 2; g.beginPath(); g.moveTo(54, 132); g.lineTo(453, 132); g.stroke();
+      g.textAlign = 'center'; g.fillStyle = '#252d35'; g.font = '900 43px "Noto Sans KR", "Malgun Gothic", sans-serif';
+      for (let j = 0; j < lines[k].length; j++) g.fillText(lines[k][j], 256, 266 + j * 75);
+      // 두 사람 그림. 마지막 포스터에는 둘 사이를 가르는 단선이 인쇄되어 있다.
+      g.strokeStyle = colors[k]; g.lineWidth = 9; g.lineCap = 'round';
+      for (const px of [192, 320]) { g.beginPath(); g.arc(px, 519, 23, 0, TAU); g.stroke(); g.beginPath(); g.moveTo(px, 546); g.lineTo(px, 593); g.moveTo(px - 32, 567); g.lineTo(px + 32, 567); g.moveTo(px, 593); g.lineTo(px - 25, 628); g.moveTo(px, 593); g.lineTo(px + 25, 628); g.stroke(); }
+      g.beginPath(); if (k === 2) { g.moveTo(263, 530); g.lineTo(248, 610); } else { g.moveTo(224, 567); g.lineTo(288, 567); } g.stroke();
+      // 하단의 작은 발행기관 표식. 포스터 크기와 본문은 그대로 둔다.
+      drawAgencyMark(g, 427, 680, 46, colors[k]);
+      g.fillStyle = colors[k]; g.font = '700 16px "Noto Sans KR", "Malgun Gothic", sans-serif'; g.textAlign = 'left';
+      g.fillText('국가정신건강등급심사원', 58, 687);
+    }
     // 종이의 접힌 귀와 얕은 접힘선.
     g.fillStyle = '#e5e0d4'; g.beginPath(); g.moveTo(447, 30); g.lineTo(474, 30); g.lineTo(475, 60); g.closePath(); g.fill();
     g.strokeStyle = '#a8a29324'; g.lineWidth = 2; g.beginPath(); g.moveTo(36, 457); g.lineTo(479, 452); g.stroke();
@@ -2710,9 +2740,9 @@ const carePosterMat = new THREE.MeshBasicMaterial({ map: carePosterTex, transpar
 carePosterMat.onBeforeCompile = (sh) => {
   sh.vertexShader = sh.vertexShader
     .replace('#include <common>', '#include <common>\nattribute float aPoster;')
-    .replace('#include <uv_vertex>', '#include <uv_vertex>\n#ifdef USE_MAP\n  vMapUv.x = (vMapUv.x + aPoster) / 3.0;\n#endif');
+    .replace('#include <uv_vertex>', `#include <uv_vertex>\n#ifdef USE_MAP\n  vMapUv.x = (vMapUv.x + aPoster) / ${CARE_POSTER_VARIANTS}.0;\n#endif`);
 };
-carePosterMat.customProgramCacheKey = () => 'care-poster-v1';
+carePosterMat.customProgramCacheKey = () => 'care-poster-v2';
 const carePosters = new THREE.InstancedMesh(carePosterGeo, carePosterMat, CARE_POSTER_COUNT);
 carePosters.frustumCulled = false; carePosters.renderOrder = 0.5; scene.add(carePosters);
 let carePosterCellX = Infinity, carePosterCellZ = Infinity;
@@ -2729,6 +2759,7 @@ function updateCarePosters(force = false) {
     const gx = cx + dx, gz = cz + dz;
     let x = gx * CARE_POSTER_SPACING + (carePosterHash(gx, gz, 61) - 0.5) * 5, z = gz * CARE_POSTER_SPACING + (carePosterHash(gx, gz, 97) - 0.5) * 5;
     let kind = Math.floor(carePosterHash(gx, gz, 157) * 3), angle = (carePosterHash(gx, gz, 193) - 0.5) * 0.5;
+    if (carePosterHash(gx, gz, 251) < 1 / 6) kind = 3;
     // 시작 구역에는 세 문구가 각각 한 장씩. 주변 세계에는 큰 빈 공간을 남긴다.
     if (gx === 0 && gz === 0) { x = -1.75; z = 1.9; kind = 2; angle = -0.10; }
     if (gx === 1 && gz === 0) { x = 2.35; z = -2.7; kind = 1; angle = 0.12; }
@@ -3545,6 +3576,9 @@ function makeItemTex(def, existing) {
   } else {
     for (const x of [50, 73, 96, 119, 142]) { g.beginPath(); g.moveTo(96, 119); g.lineTo(x, 55 + Math.abs(x - 96) * .2); g.stroke(); }
   }
+  // 탄종 표시 위에 붙은 작은 원형 상표. 판정서와 같은 온이 얼굴을 쓴다.
+  g.fillStyle = '#fff'; g.beginPath(); g.arc(145, 45, 24, 0, TAU); g.fill();
+  drawAgencyMark(g, 145, 45, 48, def.color);
   g.fillStyle = '#1f1a24'; g.font = '900 29px "Noto Sans KR", "Malgun Gothic", Gulim, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(def.name, 96, 172);
   if (existing) { existing.image = c; existing.needsUpdate = true; return existing; }
   return texOf(c);
@@ -3586,7 +3620,7 @@ function takePower(kind) {
   if (!def || G.state !== 'play') return false;
   POWERS[def.key] = ITEM_DURATION;
   itemNoticeEl.textContent = `${def.name} · ${ITEM_DURATION}초`; itemNoticeEl.hidden = false; itemNoticeT = 1.35;
-  sfxTink(.6); updateItemStatus(); return true;
+  sfxItemPickup(); updateItemStatus(); return true;
 }
 function updateItemStatus() {
   const text = ITEM_DEFS.filter(d => POWERS[d.key] > 0).map(d => `${d.short} ${Math.ceil(POWERS[d.key])}`).join(' · ');
@@ -5268,3 +5302,4 @@ window.__fh = {
 </script>
 </body>
 </html>
+
