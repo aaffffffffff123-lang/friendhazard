@@ -663,14 +663,19 @@ function sfxStab(pan = 0, v = 1) {
   const o2 = oscN('triangle', 5200); const g4 = gainN(0); envAD(g4.gain, t2 - 0.01, 0.001, 0.05, 0.05);
   o2.connect(g4).connect(out); o2.start(t2 - 0.01); o2.stop(t2 + 0.06);
 }
+// 붙잡히는 소리: 몸이 부딪히는 '쿵' + 옷을 움켜쥐는 '부스럭' + 짧은 '헉'. 저음만으로는 휴대폰 스피커에서 안 들려서 중역을 같이 넣는다.
 function sfxGrab(pan = 0, v = 1) {
-  if (!sfxGate(v >= 1 ? 2 : 0, 0.15)) return;
+  if (!sfxGate(v >= 1 ? 2 : 0, 0.18)) return;
   const t = ac.currentTime;
-  const out = outChain(0.55 * v, pan * 0.5, 0.1);
+  const out = outChain(1.0 * v, pan * 0.5, 0.12);
   const n = noiseN(0.5); const lp = filt('lowpass', 700, 1); const g = gainN(0);
   envAD(g.gain, t, 0.008, 0.8, 0.11); n.connect(lp).connect(g).connect(out); n.start(t, rand(0, 2)); n.stop(t + 0.16);
   const o = oscN('sine', 140); o.frequency.exponentialRampToValueAtTime(85, t + 0.08); const g2 = gainN(0);
-  envAD(g2.gain, t, 0.004, 0.6, 0.09); o.connect(g2).connect(out); o.start(t); o.stop(t + 0.12);
+  envAD(g2.gain, t, 0.004, 0.7, 0.09); o.connect(g2).connect(out); o.start(t); o.stop(t + 0.12);
+  const n2 = noiseN(rand(1.0, 1.3)); const bp = filt('bandpass', 1300, 1.2); bp.frequency.setValueAtTime(1700, t); bp.frequency.exponentialRampToValueAtTime(650, t + 0.1); const g3 = gainN(0);
+  envAD(g3.gain, t + 0.004, 0.003, 0.8, 0.09); n2.connect(bp).connect(g3).connect(out); n2.start(t, rand(0, 2)); n2.stop(t + 0.15);
+  const o2 = oscN('triangle', 330); o2.frequency.setValueAtTime(360, t + 0.01); o2.frequency.exponentialRampToValueAtTime(180, t + 0.1); const g4 = gainN(0);
+  envAD(g4.gain, t + 0.01, 0.006, 0.38, 0.1); o2.connect(g4).connect(out); o2.start(t + 0.01); o2.stop(t + 0.16);
 }
 // 방망이 휘두르는 바람 소리
 function sfxSwing(pan = 0, v = 1) {
@@ -2167,7 +2172,7 @@ const meMat = {
   belt: toon('#5d3b22'),
   white: toon('#ffffff'),
   gun: toon('#26252c'),
-  gunHi: toon('#4a4952'),
+  gunHi: toon('#9a9aa6'),
   blade: toon('#e6eaef'),
   handle: toon('#1b1a1f'),
 };
@@ -2239,12 +2244,18 @@ const ME_PARTS = {};
 })();
 
 // 총 / 칼
+// 만화 비율: 손이 크니 총도 크게(1.6배). 위(슬라이드)는 밝은 쇠, 아래(손잡이·틀)는 검정으로 나눠 멀리서도 총으로 읽히게.
+const GUN_SCALE = 1.6, GUN_BACK = 0.03;
 function pistolGeo() {
-  const slide = new THREE.BoxGeometry(0.042, 0.052, 0.19); slide.translate(0, 0.03, 0.055);
-  const grip = new THREE.BoxGeometry(0.036, 0.12, 0.056); grip.rotateX(-0.28); grip.translate(0, -0.04, -0.02);
-  const guard = new THREE.TorusGeometry(0.024, 0.007, 6, 12, Math.PI); guard.rotateY(Math.PI / 2); guard.rotateX(Math.PI); guard.translate(0, -0.002, 0.03);
-  const muzzle = new THREE.CylinderGeometry(0.012, 0.012, 0.012, 8); muzzle.rotateX(Math.PI / 2); muzzle.translate(0, 0.035, 0.151);
-  return mergeGeos([slide, grip, guard, muzzle]);
+  const slide = new THREE.BoxGeometry(0.046, 0.054, 0.2); slide.translate(0, 0.03, 0.06);
+  const muzzle = new THREE.CylinderGeometry(0.013, 0.013, 0.014, 8); muzzle.rotateX(Math.PI / 2); muzzle.translate(0, 0.035, 0.162);
+  const sight = new THREE.BoxGeometry(0.012, 0.014, 0.012); sight.translate(0, 0.062, 0.14);
+  const grip = new THREE.BoxGeometry(0.04, 0.12, 0.058); grip.rotateX(-0.28); grip.translate(0, -0.04, -0.02);
+  const guard = new THREE.TorusGeometry(0.026, 0.008, 6, 12, Math.PI); guard.rotateY(Math.PI / 2); guard.rotateX(Math.PI); guard.translate(0, -0.002, 0.03);
+  const frame = new THREE.BoxGeometry(0.042, 0.03, 0.15); frame.translate(0, -0.006, 0.05);
+  const top = mergeGeos([slide, muzzle, sight]), low = mergeGeos([grip, guard, frame]);
+  for (const g of [top, low]) { g.scale(GUN_SCALE, GUN_SCALE, GUN_SCALE); g.translate(0, 0, -GUN_BACK); }
+  return { top, low };
 }
 function knifeGeo() {
   const shape = new THREE.Shape();
@@ -2257,11 +2268,12 @@ const KNIFE_G = knifeGeo();
 const HANDLE_G = (() => { const g = new THREE.BoxGeometry(0.03, 0.1, 0.034); g.translate(0, -0.05, 0); return g; })();
 const GUNS = [];
 const KNIVES = [];
-const MUZZLE_LOCAL = new THREE.Vector3(0, 0.035, 0.17);
+const MUZZLE_LOCAL = new THREE.Vector3(0, 0.035 * GUN_SCALE, 0.17 * GUN_SCALE - GUN_BACK);
 for (const w of [MR.wrL, MR.wrR]) {
   const holder = new THREE.Object3D(); holder.position.set(0, -0.04, 0.0); holder.rotation.x = Math.PI / 2; w.add(holder);
-  const gun = new THREE.Mesh(GUN_G, meMat.gun); gun.castShadow = true; holder.add(gun);
-  const go = new THREE.Mesh(GUN_G, OUT_MAT); gun.add(go);
+  const gun = new THREE.Group(); holder.add(gun);
+  const gTop = new THREE.Mesh(GUN_G.top, meMat.gunHi); gTop.castShadow = true; gun.add(gTop); gTop.add(new THREE.Mesh(GUN_G.top, OUT_MAT));
+  const gLow = new THREE.Mesh(GUN_G.low, meMat.gun); gLow.castShadow = true; gun.add(gLow); gLow.add(new THREE.Mesh(GUN_G.low, OUT_MAT));
   GUNS.push(gun);
   const kh = new THREE.Object3D(); kh.position.set(0, -0.04, 0); kh.rotation.x = Math.PI / 2; w.add(kh);
   const blade = new THREE.Mesh(KNIFE_G, meMat.blade); blade.rotation.x = Math.PI / 2; blade.position.z = 0.03; kh.add(blade);
@@ -2570,7 +2582,7 @@ function clearShells() { for (let i = 0; i < SHELL_MAX; i++) { shellS[i].on = fa
 const flashTex = makeFlashTex();
 const FLASHES = GUNS.map((gun) => {
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: flashTex, transparent: true, depthWrite: false, fog: false }));
-  sp.position.copy(MUZZLE_LOCAL).add(new THREE.Vector3(0, 0, 0.05)); sp.scale.set(0.34, 0.34, 1); sp.visible = false; sp.renderOrder = 7;
+  sp.position.copy(MUZZLE_LOCAL).add(new THREE.Vector3(0, 0, 0.06)); sp.scale.set(0.42, 0.42, 1); sp.visible = false; sp.renderOrder = 7;
   gun.add(sp);
   return { sp, t: 0 };
 });
@@ -3189,7 +3201,7 @@ function tearTick(p, dt, d) {
 
 // 외로운 사람들은 서로를 잠깐 살핀 뒤 동시에 외면하고, 건강한 사람에게 다시 운다.
 function socialCrowdActive(p) { return p.state === 'chase' || p.state === 'press' || p.state === 'rise' || p.state === 'cling'; }
-function socialQuiet(p) { return socialCrowdActive(p) && (!!p.socialFriend || (!!p.social && p.social.t < 1.06)); }
+function socialQuiet(p) { return socialCrowdActive(p) && (!!p.socialFriend || (!!p.social && p.social.t < 1.6)); }
 function hushSocialPerson(p) {
   if (p.vo && !p.vo.stopped) p.vo.stop(0.035);
   p.vo = null;
@@ -3220,7 +3232,7 @@ function beginSocialPair(a, b) {
 function crowdSocialTick(dt) {
   for (let i = CROWD_SOCIAL.pairs.length - 1; i >= 0; i--) {
     const pair = CROWD_SOCIAL.pairs[i]; pair.t += dt;
-    if (pair.t < 1.3 && socialCrowdActive(pair.a) && socialCrowdActive(pair.b)) continue;
+    if (pair.t < 2.0 && socialCrowdActive(pair.a) && socialCrowdActive(pair.b)) continue;
     for (const p of [pair.a, pair.b]) {
       if (p.social === pair) { p.social = null; if (!p.socialFriend) resumeSocialPerson(p, true); }
     }
@@ -3279,11 +3291,11 @@ function crowdSocialPose(p, o) {
   const t = pair.t;
   const toward = clamp(wrapAngle(Math.atan2(other.x - p.x, other.z - p.z) - p.yaw - o[P.SY]), -1.45, 1.45);
   const away = -sign * 1.3;
-  const turn = easeOutCubic(clamp((t - 0.66) / 0.16, 0, 1));
-  const enter = easeOutCubic(clamp(t / 0.16, 0, 1));
-  const back = easeInOutSine(clamp((t - 1.06) / 0.24, 0, 1));
-  // 목만 움직인다. 상대 얼굴을 위아래로 훑고, 두 사람은 같은 순간 고개를 홱 돌린다.
-  const scan = lerp(-0.18, 0.18, clamp((t - 0.18) / 0.48, 0, 1));
+  const turn = easeOutCubic(clamp((t - 1.0) / 0.2, 0, 1));
+  const enter = easeOutCubic(clamp(t / 0.2, 0, 1));
+  const back = easeInOutSine(clamp((t - 1.6) / 0.4, 0, 1));
+  // 목만 움직인다. 상대 얼굴을 위아래로 천천히 훑고(0.25~1.0초), 두 사람은 같은 순간 고개를 홱 돌린다(1.0초). 2초에 다시 나를 본다.
+  const scan = lerp(-0.18, 0.18, clamp((t - 0.25) / 0.75, 0, 1));
   if (back > 0) lookAtMe(p, o, 1);
   o[P.HW] = lerp(o[P.HW], lerp(toward, away, turn), enter * (1 - back));
   o[P.HX] = lerp(o[P.HX], lerp(scan, -0.02, turn), enter * (1 - back));
@@ -3319,7 +3331,8 @@ function spawnAngle(north = 0.72) {
   return Math.random() < north ? rand(-1.9, 1.9) : rand(1.9, TAU - 1.9);
 }
 // 동료가 늘면 조금 더 몰려오지만, 구조 보상을 삼키는 급격한 증가는 피한다. 한 화면에 100명까지.
-function squadN() { let n = 0; for (const a of ALLIES) if (a.state === 'fight' || a.state === 'five' || a.state === 'freed') n++; return n; }
+// 붙잡혀 손을 못 쓰는 친구는 세지 않는다 (도움도 못 주는데 사람만 더 오는 일이 없게)
+function squadN() { let n = 0; for (const a of ALLIES) if ((a.state === 'fight' || a.state === 'five' || a.state === 'freed') && !a.pinned) n++; return n; }
 function maxAlive() { return Math.min(100, MAX_ALIVE + 12 * squadN() + overT() * 0.25); }
 function waveNow(T) {
   const w = WAVES.find((x) => T >= x.t0 && T < x.t1);
@@ -3328,7 +3341,7 @@ function waveNow(T) {
   return { every: Math.max(0.3, 0.62 - o * 0.006), run: Math.min(0.9, 0.78 + o * 0.003), north: Math.max(0.3, 0.4 - o * 0.003) };
 }
 function spawnRing(n0) {
-  const n = Math.round(n0 * (1 + 0.35 * squadN())), a0 = rand(0, TAU);
+  const n = Math.round(n0 * (1 + 0.2 * squadN())), a0 = rand(0, TAU);   // 친구 몫만큼만 더 (친구를 구하자마자 밀리지 않게)
   const near = lerp(14, 11.5, Math.min(1, overT() / 45));
   for (let k = 0; k < n; k++) {
     if (aliveCount >= maxAlive()) break;
@@ -3394,7 +3407,7 @@ function spawnUpdate(dt) {
   if (G.ringNext >= RINGS.length && T >= G.ringT) { spawnRing(26 + overT() * 0.45); G.ringT += 10; }
   const w = waveNow(T);
   const friends = squadN();
-  G.spawnAcc += dt * (1 + 0.6 * friends);
+  G.spawnAcc += dt * (1 + 0.3 * friends);
   if (G.spawnAcc >= w.every) { G.spawnAcc -= w.every; spawnOne(Math.random() < w.run ? 1 : 0, spawnAngle(w.north === undefined ? 0.72 : w.north)); }
   if (T >= 22) {
     G.groupAcc += dt;
@@ -3842,8 +3855,8 @@ const DANGER_T = 3.0;    // 이 시간이 지나면 끝
 function dangerN() { return G.playT < 200 ? DANGER_N : G.playT < 240 ? DANGER_N - 1 : DANGER_N - 2; }
 function dangerSim(dt) {
   if (G.state !== 'play') { G.danger = Math.max(0, G.danger - dt * 3); return; }
-  // 처음 20초는 천천히 차오름 (조작을 익히는 동안)
-  if (ME.clingers.length >= dangerN()) G.danger = Math.min(DANGER_T, G.danger + dt * (G.playT < 20 ? 0.5 : 1));
+  // 처음 10초는 안 차고(조작을 익히는 동안), 20초까지는 천천히 차오름
+  if (ME.clingers.length >= dangerN()) G.danger = Math.min(DANGER_T, G.danger + dt * (G.playT < 10 ? 0 : G.playT < 20 ? 0.5 : 1));
   else G.danger = Math.max(0, G.danger - dt * 1.6);
   if (G.danger >= DANGER_T) startOutburst();
 }
@@ -4057,18 +4070,22 @@ function guardTarget(a) {
   }
   return best;
 }
-// 내게 매달린 사람 가운데 이 친구가 떼어 줄 사람
+// 이 친구가 떼어 줄 사람: 내게 매달린 사람(가까울 때), 그리고 붙잡힌 다른 친구에게 매달린 사람
 function guardHelpTarget(a) {
   let best = null, bd = 1e9;
-  for (const c of ME.clingers) {
-    if (c.state !== 'cling') continue;
-    let taken = false;
-    for (const b of ALLIES) if (b !== a && b.stab && b.stab.target === c) { taken = true; break; }
-    if (taken) continue;
+  const consider = (c, limit) => {
+    if (c.state !== 'cling') return;
+    for (const b of ALLIES) if (b !== a && b.stab && b.stab.target === c) return;
     const d = Math.hypot(c.x - a.x, c.z - a.z);
-    if (d < bd) { bd = d; best = c; }
+    if (d < limit && d < bd) { bd = d; best = c; }
+  };
+  for (const c of ME.clingers) consider(c, 2.6);
+  for (const b of ALLIES) {
+    if (b === a || !b.pinned || (b.state !== 'fight' && b.state !== 'freed')) continue;
+    if (Math.hypot(b.x - ME.x, b.z - ME.z) > 9) continue;
+    for (const c of b.clingers) consider(c, 7);
   }
-  return bd < 2.6 ? best : null;
+  return best;
 }
 
 function makeAlly(k) {
@@ -4215,7 +4232,7 @@ function allyKnife(a) {
   sfxStab(screenPan(a.x, a.z), allyVol(a) * 0.8);
 }
 function allyStabHit(a, c) {
-  if (c.state !== 'cling' || (c.host !== a && c.host !== ME)) return;
+  if (c.state !== 'cling') return;   // 자기 몸, 내 몸, 다른 친구의 몸에 매달린 사람 모두
   if (c.host === ME) G.helped++;
   const dx = c.x - a.x, dz = c.z - a.z, d = Math.hypot(dx, dz) || 1;
   kill(c, dx / d, dz / d, 'stab', a);
@@ -4249,7 +4266,7 @@ function allySim(dt) {
     if (a.stab) {
       a.stab.t += dt;
       if (!a.stab.done && a.stab.t >= 0.1) { a.stab.done = true; allyStabHit(a, a.stab.target); }
-      if (a.stab.t >= 0.28) { a.stab = null; a.cd = Math.max(a.cd, 0.1); }
+      if (a.stab.t >= 0.28) { a.stab = null; a.cd = Math.max(a.cd, a.pinned ? 0.45 : 0.1); }   // 붙잡힌 채로는 느리게
     }
     if (a.swing) {
       a.swing.t += dt;
@@ -4262,7 +4279,7 @@ function allySim(dt) {
       else a.freeT = 0;
       face = Math.atan2(ME.x - a.x, ME.z - a.z);
     } else if (a.state === 'freed') {
-      if (a.pinned) { a.target = null; }
+      if (a.pinned) { a.target = null; allyKnife(a); }   // 붙잡혀도 버둥대며 한 명씩 떼어 낸다
       else if (a.clingers.length) allyKnife(a);
       else if (!a.stab) {
         const side = a.x >= ME.x ? 1 : -1;
@@ -4276,7 +4293,7 @@ function allySim(dt) {
       // 내 주위 자리를 지키며 바깥을 봄. 다가오는 사람은 막으러 나가고, 내게 매달린 사람은 떼어 줌
       a.helpCD -= dt;
       a.helping = null;
-      if (a.pinned) { a.target = null; }
+      if (a.pinned) { a.target = null; allyKnife(a); }   // 붙잡혀도 버둥대며 한 명씩 떼어 낸다
       else if (a.clingers.length) allyKnife(a);
       else {
         a.tgtT -= dt;
@@ -4601,7 +4618,7 @@ let arrowShown = false;
 let arrowTarget = null;
 const _as = { x: 0, y: 0, z: 0 }, _as2 = { x: 0, y: 0, z: 0 };
 function updateArrow() {
-  const pinned = ALLIES.filter((a) => a.rescued && a.pinned && a.clingers.length > 1);
+  const pinned = ALLIES.filter((a) => a.rescued && a.pinned && a.clingers.length > 1 && a.pinT > 2.6);
   const urgent = G.state === 'play' && pinned.length > 0;
   const a = urgent ? (pinned.includes(arrowTarget) ? arrowTarget : pinned.reduce((best, p) => !best || Math.hypot(p.x - ME.x, p.z - ME.z) < Math.hypot(best.x - ME.x, best.z - ME.z) ? p : best, null)) : G.trapped;
   const want = !!a && (urgent || a.state === 'trapped') && G.state === 'play';
@@ -5129,7 +5146,8 @@ function drop() {
   const fl = $('flash'); fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go');
   CAM.shake = 0.12;
   // 모두 알아보고 일어남
-  for (const p of live) if (p.state === 'idle') { p.noticeT = 0.05 + Math.hypot(p.x - ME.x, p.z - ME.z) * 0.06 + rand(0, 0.35); p.look = 1; }
+  // 로고가 떠 있는 동안(1.9초)은 고개만 돌려 쳐다보고, 로고가 사라진 뒤에 일어나 걸어온다
+  for (const p of live) if (p.state === 'idle') { p.noticeT = 2.0 + Math.hypot(p.x - ME.x, p.z - ME.z) * 0.06 + rand(0, 0.35); p.look = 1; }
   $('hud').hidden = false; weaponEl.hidden = false;
   if (!G.firedOnce) weaponEl.classList.add('pulse');
   runSeq([
