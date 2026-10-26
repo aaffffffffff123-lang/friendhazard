@@ -233,7 +233,23 @@ body { font-family: var(--font-sans); word-break: keep-all; overflow-wrap: anywh
 #toast.show { animation: toast 3.2s cubic-bezier(.2, .9, .25, 1) forwards; }
 @keyframes toast { 0% { transform: translate(-50%, -150%); } 11% { transform: translate(-50%, 0); } 86% { transform: translate(-50%, 0); opacity: 1; } 100% { transform: translate(-50%, -150%); opacity: 0.6; } }
 
-#err { position: absolute; left: 16px; right: 16px; bottom: calc(16px + var(--safe-b)); font-size: 13px; color: var(--ink-2); text-align: center; }
+#err { position: absolute; z-index: 10; left: 16px; right: 16px; bottom: calc(16px + var(--safe-b)); font-size: 13px; color: var(--ink-2); text-align: center; }
+
+/* 집에서 들고 나온 산탄총: 무기 버튼 그림과 남은 탄 */
+#weapon .sg { display: none; }
+#weapon.sgon .gun { display: none; }
+#weapon.sgon .sg { display: block; }
+#weapon.knife .sg { display: none; }
+#sgN { position: absolute; left: -7px; top: -7px; min-width: 32px; height: 32px; padding: 0 8px; border-radius: 16px; background: #8a4f2a; color: #fff; border: 2.5px solid var(--ink); display: grid; place-items: center; font: 900 16px/1 var(--font-sans); font-variant-numeric: tabular-nums; box-shadow: 0 3px 0 var(--ink); }
+#sgN.pop { animation: sgpop .22s ease-out; }
+@keyframes sgpop { 0% { transform: scale(1.35); background: var(--blood); } 100% { transform: scale(1); } }
+/* 집에서 나온 직후: 처음 누르면 이어짐 */
+#backHint { position: absolute; left: 50%; bottom: calc(132px + var(--safe-b)); transform: translateX(-50%); max-width: calc(100% - 32px); padding: 10px 18px 11px; border: 2.5px solid var(--ink); border-radius: 999px; background: rgba(255, 255, 255, 0.93); color: var(--ink); font-weight: 900; font-size: clamp(14px, 3.9vw, 17px); white-space: nowrap; box-shadow: 0 4px 0 rgba(31, 26, 36, 0.28); animation: hintblink 1.7s ease-in-out infinite; }
+@keyframes hintblink { 50% { opacity: 0.55; } }
+/* 집 드나들 때 화면 전환 */
+#linkFade { position: absolute; inset: 0; z-index: 9; background: #fff; opacity: 0; visibility: hidden; pointer-events: none; }
+.linkout #linkFade { opacity: 1; visibility: visible; }
+.linkout #title { display: none !important; }
 
 /* 가로로 눕힌 폰처럼 세로가 짧은 화면 */
 @media (max-height: 560px) {
@@ -252,6 +268,7 @@ body { font-family: var(--font-sans); word-break: keep-all; overflow-wrap: anywh
   #weapon { width: 80px; height: 80px; bottom: calc(16px + var(--safe-b)); }
   #weapon svg { width: 48px; height: 48px; }
   #sub { bottom: calc(8% + var(--safe-b)); }
+  #backHint { bottom: calc(12px + var(--safe-b)); padding: 8px 16px 9px; }
   #toast { top: calc(6px + var(--safe-t)); padding: 7px 12px 7px 8px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -260,6 +277,10 @@ body { font-family: var(--font-sans); word-break: keep-all; overflow-wrap: anywh
 </style>
 </head>
 <body>
+<script>
+  // 집(gosiwon.html)에서 막 나왔으면 시작 화면을 건너뛰고 하얀 화면에서 이어 간다
+  (function () { try { var v = JSON.parse(sessionStorage.getItem('fh_link') || 'null'); if (!v) { var m = location.hash.match(/[#&]s=([^&]+)/); if (m) v = JSON.parse(decodeURIComponent(m[1])); } if (v && v.v === 1 && v.dir === 'out' && Date.now() - (v.at || 0) < 6 * 3600e3) document.documentElement.classList.add('linkout'); } catch (e) {} })();
+</script>
 
 <canvas id="c" aria-label="게임 화면"></canvas>
 <div id="ui">
@@ -272,14 +293,18 @@ body { font-family: var(--font-sans); word-break: keep-all; overflow-wrap: anywh
   <button id="weapon" hidden aria-label="무기">
     <svg class="gun" viewBox="0 0 64 64" aria-hidden="true"><path d="M9 22h40l3-3h5v9h-4v4H32l-2 3h-6l-3 13a3 3 0 0 1-3 2.4h-6a2 2 0 0 1-2-2.5l4-14.4L9 30z" fill="#1f1a24"/><path d="M30 35h6l-1.6 6.2a2 2 0 0 1-2 1.5H29" fill="none" stroke="#1f1a24" stroke-width="3" stroke-linejoin="round"/><rect x="12" y="24.5" width="34" height="3" rx="1.5" fill="#fff" opacity=".35"/></svg>
     <svg class="knife" viewBox="0 0 64 64" aria-hidden="true"><path d="M8 40c10-3 26-10 40-24l6-4-2 7C42 33 28 41 14 44z" fill="#fff"/><path d="M14 44l-4 2 4 9 5-2-1.5-7z" fill="#1f1a24" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/><path d="M12 41l8-3" stroke="#d3122c" stroke-width="1.6"/></svg>
+    <svg class="sg" viewBox="0 0 64 64" aria-hidden="true"><path d="M4 25h40l2-2h12v6H40l-4 2h-9l-2 2H15l-6 9H3l4-11z" fill="#1f1a24"/><rect x="27" y="29" width="13" height="5" rx="1.5" fill="#8a4f2a"/><rect x="8" y="26.5" width="34" height="2.4" rx="1.2" fill="#fff" opacity=".35"/></svg>
+    <b id="sgN" hidden>0</b>
     <span class="keycap">SPACE</span>
   </button>
   <div id="arrow" hidden aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M24 4 L44.5 26.5 H32.5 V44 H15.5 V26.5 H3.5 Z" fill="#f6c42f" stroke="#1f1a24" stroke-width="3.6" stroke-linejoin="round"/><path d="M24 10.5 L35 22.5" stroke="#fff6cc" stroke-width="2.6" stroke-linecap="round" opacity=".85"/></svg></div>
   <div id="toast" hidden role="status"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9.2" cy="8" r="3.6" fill="#fff"/><path d="M2.6 19c.5-3.9 3.2-6.1 6.6-6.1s6.1 2.2 6.6 6.1z" fill="#fff"/><path d="M19 6.6v7.2M15.4 10.2h7.2" stroke="#fff" stroke-width="2.3" stroke-linecap="round"/></svg></span><span class="msg">친구를 새로 사귀었습니다.</span><span class="tm">방금</span></div>
   <div id="rescueNotice" hidden role="status" aria-live="polite">친구를 구해 주세요.</div>
   <div id="sub" hidden></div>
+  <div id="backHint" hidden role="status"></div>
   <div id="slam" hidden><span class="gold">친구하자드</span></div>
   <div id="flash"></div>
+  <div id="linkFade"></div>
 
   <section id="intro" hidden>
     <div class="lines"><p></p><p></p><p></p></div>
@@ -356,6 +381,22 @@ const store = {
 };
 const QS = new URLSearchParams(location.search);
 let IS_TOUCH = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0;
+// 집 안(1인칭 고시원, gosiwon.html)과 오가며 넘겨주는 판 상태. 같은 탭 안에서만 쓰고, 막힌 브라우저는 주소 뒤에 붙여 넘긴다.
+const LINK_KEY = 'fh_link';
+function linkRead() {
+  let v = null;
+  try { v = JSON.parse(sessionStorage.getItem(LINK_KEY) || 'null'); } catch (e) { v = null; }
+  if (!v) { const m = location.hash.match(/[#&]s=([^&]+)/); if (m) { try { v = JSON.parse(decodeURIComponent(m[1])); } catch (e) { v = null; } } }
+  return v && v.v === 1 && Date.now() - (v.at || 0) < 6 * 3600e3 ? v : null;
+}
+function linkWrite(o) {
+  const v = Object.assign({ v: 1, at: Date.now() }, o);
+  try { sessionStorage.setItem(LINK_KEY, JSON.stringify(v)); return ''; } catch (e) { return '#s=' + encodeURIComponent(JSON.stringify(v)); }
+}
+function linkClear() { try { sessionStorage.removeItem(LINK_KEY); } catch (e) { /* 무시 */ } if (location.hash) history.replaceState(null, '', location.pathname + location.search); }
+// 집에서 막 나온 참이면 그 상태로 이어서
+const RETURN = (() => { const l = linkRead(); if (l && l.dir === 'in') linkClear(); return l && l.dir === 'out' ? l : null; })();
+if (RETURN) linkClear();
 
 // 에스팀랩의 온이 원본을 작은 기관 마크로만 사용한다.
 const ONI_MARK_SRC = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" width=\"100\" height=\"100\"><defs><linearGradient id=\"agency-pink\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#fff6fa\"/><stop offset=\"1\" stop-color=\"#ffd6e4\"/></linearGradient><clipPath id=\"agency-circle\"><circle cx=\"50\" cy=\"50\" r=\"45\"/></clipPath></defs><circle cx=\"50\" cy=\"50\" r=\"48\" fill=\"#fff\"/><g clip-path=\"url(#agency-circle)\"><circle cx=\"50\" cy=\"50\" r=\"45\" fill=\"url(#agency-pink)\"/><svg x=\"6\" y=\"6\" width=\"88\" height=\"88\" viewBox=\"58 34 84 84\"><defs>\n  <linearGradient id=\"q1gl\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0\" stop-color=\"#FFFFFF\"/><stop offset=\".55\" stop-color=\"#EDF2F8\"/><stop offset=\"1\" stop-color=\"#C4D2E1\"/></linearGradient>\n  <linearGradient id=\"q1hg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0\" stop-color=\"#D92741\"/><stop offset=\".35\" stop-color=\"#FF6478\"/><stop offset=\"1\" stop-color=\"#BF1A35\"/></linearGradient>\n  <radialGradient id=\"q1bl\" cx=\".36\" cy=\".3\" r=\".78\"><stop offset=\"0\" stop-color=\"#FF97A4\"/><stop offset=\".5\" stop-color=\"#F23A53\"/><stop offset=\"1\" stop-color=\"#B0112C\"/></radialGradient>\n  <radialGradient id=\"q1ey\" cx=\".38\" cy=\".32\" r=\".75\"><stop offset=\"0\" stop-color=\"#FFFFFF\"/><stop offset=\".72\" stop-color=\"#F4F2F8\"/><stop offset=\"1\" stop-color=\"#C9C1D8\"/></radialGradient>\n  <radialGradient id=\"q1hd\" cx=\".35\" cy=\".3\" r=\".8\"><stop offset=\"0\" stop-color=\"#FFFFFF\"/><stop offset=\"1\" stop-color=\"#C9D5E2\"/></radialGradient>\n  <linearGradient id=\"q1lid\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#E6EDF5\"/><stop offset=\"1\" stop-color=\"#D3DEEA\"/></linearGradient>\n  <filter id=\"q1bl2\" x=\"-60%\" y=\"-60%\" width=\"220%\" height=\"220%\"><feGaussianBlur stdDeviation=\"4\"/></filter>\n  <clipPath id=\"q1cl\"><path d=\"M84 56 L84 244.11 A24 24 0 1 0 116 244.11 L116 56 A16 16 0 0 0 84 56 Z\"/></clipPath>\n  <clipPath id=\"q1c1\"><circle cx=\"85\" cy=\"81\" r=\"15\"/></clipPath>\n  <clipPath id=\"q1c2\"><circle cx=\"115\" cy=\"81\" r=\"15\"/></clipPath>\n  </defs><g transform=\"rotate(-2 100 280)\"><path d=\"M85 150 Q66.5 166.6 64 188\" fill=\"none\" stroke=\"#93A7BD\" stroke-width=\"5.2\" stroke-linecap=\"round\"/>\n  <circle cx=\"64\" cy=\"188\" r=\"7\" fill=\"url(#q1hd)\" stroke=\"#8FA3B8\" stroke-width=\"1.3\"/><path d=\"M115 150 Q133.5 166.6 136 188\" fill=\"none\" stroke=\"#93A7BD\" stroke-width=\"5.2\" stroke-linecap=\"round\"/>\n  <circle cx=\"136\" cy=\"188\" r=\"7\" fill=\"url(#q1hd)\" stroke=\"#8FA3B8\" stroke-width=\"1.3\"/><ellipse cx=\"100\" cy=\"292\" rx=\"32\" ry=\"6.5\" fill=\"#3B2A55\" opacity=\".18\" filter=\"url(#q1bl2)\"/>\n  <path d=\"M84 56 L84 244.11 A24 24 0 1 0 116 244.11 L116 56 A16 16 0 0 0 84 56 Z\" fill=\"url(#q1gl)\"/>\n  <g clip-path=\"url(#q1cl)\">\n    <rect class=\"oni-liquid\" x=\"95.5\" y=\"171.0\" width=\"9\" height=\"91.0\" rx=\"4.5\" fill=\"url(#q1hg)\"/>\n    <circle cx=\"100\" cy=\"262\" r=\"20.5\" fill=\"url(#q1bl)\"/>\n    <rect x=\"109\" y=\"40\" width=\"10\" height=\"220\" fill=\"#3B2A55\" opacity=\".05\"/>\n  </g>\n  <path d=\"M104 150 H112.5\" stroke=\"#8C9FB4\" stroke-width=\"1.7\" stroke-linecap=\"round\"/><path d=\"M107 162 H112.5\" stroke=\"#8C9FB4\" stroke-width=\"1.7\" stroke-linecap=\"round\"/><path d=\"M104 174 H112.5\" stroke=\"#8C9FB4\" stroke-width=\"1.7\" stroke-linecap=\"round\"/><path d=\"M107 186 H112.5\" stroke=\"#8C9FB4\" stroke-width=\"1.7\" stroke-linecap=\"round\"/><path d=\"M104 198 H112.5\" stroke=\"#8C9FB4\" stroke-width=\"1.7\" stroke-linecap=\"round\"/><path d=\"M107 210 H112.5\" stroke=\"#8C9FB4\" stroke-width=\"1.7\" stroke-linecap=\"round\"/><path d=\"M104 222 H112.5\" stroke=\"#8C9FB4\" stroke-width=\"1.7\" stroke-linecap=\"round\"/><path d=\"M107 234 H112.5\" stroke=\"#8C9FB4\" stroke-width=\"1.7\" stroke-linecap=\"round\"/>\n  <rect x=\"88.2\" y=\"112\" width=\"4.4\" height=\"112\" rx=\"2.2\" fill=\"#fff\" opacity=\".95\"/>\n  <ellipse cx=\"92.5\" cy=\"254\" rx=\"4.6\" ry=\"7\" fill=\"#fff\" opacity=\".78\" transform=\"rotate(24 92.5 254)\"/>\n  <circle cx=\"108\" cy=\"271\" r=\"2.2\" fill=\"#fff\" opacity=\".45\"/>\n  <path d=\"M84 56 L84 244.11 A24 24 0 1 0 116 244.11 L116 56 A16 16 0 0 0 84 56 Z\" fill=\"none\" stroke=\"#9EB1C6\" stroke-width=\"1.4\" opacity=\".85\"/><ellipse cx=\"88.6\" cy=\"100\" rx=\"4.6\" ry=\"2.8\" fill=\"#FF8DA8\" opacity=\".75\"/><ellipse cx=\"111.4\" cy=\"100\" rx=\"4.6\" ry=\"2.8\" fill=\"#FF8DA8\" opacity=\".75\"/><circle cx=\"85\" cy=\"81\" r=\"15\" fill=\"url(#q1ey)\"/><g clip-path=\"url(#q1c1)\"><circle cx=\"85\" cy=\"82.5\" r=\"6.8\" fill=\"#2A1F3D\"/><circle cx=\"87.3\" cy=\"79.9\" r=\"2.3\" fill=\"#fff\"/></g><circle cx=\"85\" cy=\"81\" r=\"15\" fill=\"none\" stroke=\"#B3A8C6\" stroke-width=\"1.1\"/><circle cx=\"115\" cy=\"81\" r=\"15\" fill=\"url(#q1ey)\"/><g clip-path=\"url(#q1c2)\"><circle cx=\"115\" cy=\"82.5\" r=\"6.8\" fill=\"#2A1F3D\"/><circle cx=\"117.3\" cy=\"79.9\" r=\"2.3\" fill=\"#fff\"/></g><circle cx=\"115\" cy=\"81\" r=\"15\" fill=\"none\" stroke=\"#B3A8C6\" stroke-width=\"1.1\"/><path d=\"M72 60 Q84 54 96 59\" fill=\"none\" stroke=\"#3B2A55\" stroke-width=\"4.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M104 59 Q116 54 128 60\" fill=\"none\" stroke=\"#3B2A55\" stroke-width=\"4.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M94 106 Q100 111 106 106\" fill=\"none\" stroke=\"#3B2A55\" stroke-width=\"2.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></g></svg></g></svg>");
@@ -795,6 +836,58 @@ function sfxRiser(t, dur) {
   n.connect(bp).connect(g).connect(out); n.start(t, rand(0, 2)); n.stop(t + dur + 0.02);
 }
 
+// ── 집에서 들고 나온 산탄총, 현관문 ──
+function sfxClickAt(t, f, v, dur = 0.02, q = 5) {
+  const out = outChain(v, 0, 0);
+  const n = noiseN(rand(0.9, 1.2)); const bp = filt('bandpass', f, q); const g = gainN(0);
+  envAD(g.gain, t, 0.0008, 1, dur); n.connect(bp).connect(g).connect(out); n.start(t, rand(0, 2)); n.stop(t + dur + 0.03);
+  const o = oscN('square', f * 0.5); const g2 = gainN(0); envAD(g2.gain, t, 0.0005, 0.12, dur * 0.6);
+  o.connect(g2).connect(out); o.start(t); o.stop(t + dur + 0.02);
+}
+let SG_CURVE = null;
+function sfxShotgunOut(pan = 0) {
+  if (!sfxGate(3, 0.9)) return;
+  const t = ac.currentTime + 0.002;
+  const out = outChain(1.1, pan * 0.5, 0.9);
+  const sh = ac.createWaveShaper(); sh.curve = SG_CURVE || (SG_CURVE = makeCurve(4.5)); sh.connect(out);
+  // 찢어지는 앞소리 + 길게 꺼지는 몸통 + 가슴을 치는 저음
+  const n1 = noiseN(rand(0.85, 1.0)); const hp = filt('highpass', 1600, 0.6); const g1 = gainN(0);
+  envAD(g1.gain, t, 0.0008, 1.0, 0.08); n1.connect(hp).connect(g1).connect(sh); n1.start(t, rand(0, 2)); n1.stop(t + 0.12);
+  const n2 = noiseN(0.8); const lp = filt('lowpass', 5000, 0.7);
+  lp.frequency.setValueAtTime(5200, t); lp.frequency.exponentialRampToValueAtTime(160, t + 0.45);
+  const g2 = gainN(0); envAD(g2.gain, t, 0.002, 1.2, 0.48); n2.connect(lp).connect(g2).connect(sh); n2.start(t, rand(0, 2)); n2.stop(t + 0.55);
+  const o = oscN('sine', 90); o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(30, t + 0.3);
+  const g3 = gainN(0); envAD(g3.gain, t, 0.003, 1.5, 0.34); o.connect(g3).connect(sh); o.start(t); o.stop(t + 0.4);
+  const o2 = oscN('triangle', 55); const g5 = gainN(0); envAD(g5.gain, t + 0.01, 0.01, 0.7, 0.5); o2.connect(g5).connect(out); o2.start(t); o2.stop(t + 0.6);
+}
+// 철컥-척 (펌프)
+function sfxPumpOut(d = 0) {
+  if (!sfxGate(2, 0.4)) return;
+  const t = ac.currentTime + d;
+  sfxClickAt(t, 1100, 0.75, 0.05, 2.5); sfxClickAt(t + 0.02, 2600, 0.4, 0.03, 6);
+  sfxClickAt(t + 0.2, 1400, 0.85, 0.05, 2.5); sfxClickAt(t + 0.215, 3400, 0.55, 0.03, 8);
+}
+// 빈 산탄총을 바닥에 던짐
+function sfxGunDrop(pan = 0, d = 0.12) {
+  if (!sfxGate(1, 0.4 + d)) return;
+  const t = ac.currentTime + d;
+  const out = outChain(0.55, pan * 0.5, 0.2);
+  const n = noiseN(0.7); const lp = filt('lowpass', 900, 1); const g = gainN(0); envAD(g.gain, t, 0.003, 0.9, 0.12);
+  n.connect(lp).connect(g).connect(out); n.start(t, rand(0, 2)); n.stop(t + 0.16);
+  sfxClickAt(t + 0.01, 2400, 0.35, 0.03, 6); sfxClickAt(t + 0.11, 1800, 0.25, 0.03, 5);
+}
+// 현관문이 쾅 닫힘
+function sfxDoorSlamOut() {
+  if (!ok()) return;
+  const t = ac.currentTime + 0.01;
+  const out = outChain(1.05, 0, 0.7);
+  const o = oscN('sine', 92); o.frequency.setValueAtTime(115, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.25);
+  const g = gainN(0); envAD(g.gain, t, 0.003, 1.1, 0.3); o.connect(g).connect(out); o.start(t); o.stop(t + 0.36);
+  const n = noiseN(0.9); const bp = filt('bandpass', 700, 1.3); const g2 = gainN(0);
+  envAD(g2.gain, t, 0.002, 1.0, 0.16); n.connect(bp).connect(g2).connect(out); n.start(t, rand(0, 2)); n.stop(t + 0.22);
+  sfxClickAt(t + 0.03, 2500, 0.6, 0.03, 6); sfxClickAt(t + 0.08, 3300, 0.35, 0.02, 7);
+}
+
 // ── 목소리 ──
 function voicesPlaying() { let n = 0; for (const h of activeVoices) if (!h.stopped) n++; return n; }
 function playVoice(key, o = {}) {
@@ -1223,7 +1316,8 @@ async function audioOfflineTest(sec, events) {
   // 오프라인 컨텍스트는 currentTime이 0에 멈춰 있으므로, 시간 지정이 필요한 것은 suspend로 끊어서 실행
   const fns = { gun: () => sfxGun(0), flesh: () => sfxFlesh(1), fall: () => sfxFall(1), stab: () => sfxStab(0), grab: () => sfxGrab(0), stamp: () => sfxStamp(), sparkle: () => sfxSparkle(1), impact: () => sfxImpact(ac.currentTime), tink: () => sfxTink(1), type: () => sfxType(), splat: () => sfxSplat(1),
     swing: () => sfxSwing(0), bat: () => sfxBat(0), clap: () => sfxClap(), chime: () => sfxChime(), pickup: () => sfxItemPickup(), pno: () => playVoice('p_no', { verb: 0.12 }), heart: () => sfxHeart(1),
-    voice: (k) => playVoice(k || 'f_F2', { sob: 0.028 }), pline: () => playVoice('p_line', { verb: 0.12 }), music: () => { musicStart(ac.currentTime + 0.01, 32); }, musicStop: () => musicStop(true) };
+    voice: (k) => playVoice(k || 'f_F2', { sob: 0.028 }), pline: () => playVoice('p_line', { verb: 0.12 }), music: () => { musicStart(ac.currentTime + 0.01, 32); }, musicStop: () => musicStop(true),
+    sgun: () => sfxShotgunOut(0), pump: () => sfxPumpOut(0), gdrop: () => sfxGunDrop(0, 0.05), slam: () => sfxDoorSlamOut() };
   // 같은 시각(렌더 단위)에 suspend를 두 번 걸 수 없어서 묶어서 건다
   const groups = new Map();
   const q = (t) => Math.round(t * 44100 / 128);
@@ -2303,6 +2397,39 @@ for (const [h, w] of [MR.wrL, MR.wrR].entries()) {
   KNIVES.push(kh);
 }
 
+// 집에서 들고 나온 산탄총: 오른손 권총 대신 한 손으로 든다 (만화처럼 큰 손). 다 쓰면 바닥에 버리고 다시 쌍권총.
+const SG = { on: false, shells: 0, cd: 0, pumpT: 9, model: null, pump: null, pumpZ: 0, flash: null, flashT: 0, dropped: [], muzzleW: new THREE.Vector3(), dropT: -1, ejectT: -1 };
+const SG_S = 1.25;
+const SG_MUZZLE = new THREE.Vector3(0, 0.045 * SG_S, 0.7 * SG_S);
+function makeOutShotgun() {
+  const g = new THREE.Group();
+  const metal = toon('#34333b'), metalHi = toon('#8b8e9a'), wood = toon('#9c5a2e'), woodDk = toon('#6d3c1f');
+  const part = (geo, mat, x, y, z, outline = true) => { geo.scale(SG_S, SG_S, SG_S); const m = new THREE.Mesh(geo, mat); m.position.set(x * SG_S, y * SG_S, z * SG_S); m.castShadow = true; g.add(m); if (outline) m.add(new THREE.Mesh(geo, OUT_MAT)); return m; };
+  const barrel = new THREE.CylinderGeometry(0.022, 0.022, 0.5, 12); barrel.rotateX(Math.PI / 2); part(barrel, metalHi, 0, 0.045, 0.44);
+  const tube = new THREE.CylinderGeometry(0.018, 0.018, 0.4, 10); tube.rotateX(Math.PI / 2); part(tube, metal, 0, 0.004, 0.39);
+  part(new THREE.BoxGeometry(0.052, 0.085, 0.24), metal, 0, 0.026, 0.09);
+  const pumpG = new THREE.CylinderGeometry(0.035, 0.035, 0.17, 12); pumpG.rotateX(Math.PI / 2);
+  const pump = part(pumpG, wood, 0, 0.006, 0.39);
+  const grip = new THREE.BoxGeometry(0.042, 0.11, 0.062); grip.rotateX(-0.42); part(grip, woodDk, 0, -0.04, -0.02);
+  const stock = new THREE.BoxGeometry(0.05, 0.09, 0.3); stock.rotateX(0.14); part(stock, wood, 0, -0.016, -0.18);
+  part(new THREE.BoxGeometry(0.012, 0.016, 0.012), metalHi, 0, 0.074, 0.68, false);
+  return { g, pump };
+}
+{
+  const holder = new THREE.Object3D(); holder.position.set(0, -0.04, 0.0); holder.rotation.x = Math.PI / 2; MR.wrR.add(holder);
+  const { g, pump } = makeOutShotgun();
+  holder.add(g); g.visible = false;
+  SG.model = g; SG.pump = pump; SG.pumpZ = pump.position.z;
+}
+function sgDropAt(x, z, y0) {
+  // 다 쓴 총은 손에서 떨어져 바닥에 그대로 남는다
+  const { g } = makeOutShotgun();
+  g.position.set(x, y0, z); g.rotation.set(0, rand(0, TAU), 0.25, 'YXZ');
+  g.userData.fall = { t: 0, y0, r0: 0.25 };
+  scene.add(g); SG.dropped.push(g);
+  return g;
+}
+
 // 눈 반짝이
 const starTex = makeStarTex();
 const SPARKS = [];
@@ -2606,8 +2733,11 @@ const FLASHES = GUNS.map((gun) => {
   gun.add(sp);
   return { sp, t: 0 };
 });
+SG.flash = new THREE.Sprite(new THREE.SpriteMaterial({ map: flashTex, transparent: true, depthWrite: false, fog: false }));
+SG.flash.position.copy(SG_MUZZLE).add(new THREE.Vector3(0, 0, 0.1)); SG.flash.scale.set(0.8, 0.8, 1); SG.flash.visible = false; SG.flash.renderOrder = 7;
+SG.model.add(SG.flash);
 // 총알 궤적
-const TRACER_MAX = 12;
+const TRACER_MAX = 24;
 const tracerGeo = new THREE.BoxGeometry(1, 1, 1); tracerGeo.translate(0, 0, 0.5);
 const tracers = new THREE.InstancedMesh(tracerGeo, new THREE.MeshBasicMaterial({ color: 0xffae1f, fog: false }), TRACER_MAX);
 tracers.frustumCulled = false; tracers.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -2802,6 +2932,270 @@ function updateCarePosters(force = false) {
   carePosters.instanceMatrix.needsUpdate = true; carePosterAttr.needsUpdate = true;
 }
 
+// ───────────────────────── 집 (안에 들어가면 1인칭 고시원) ─────────────────────────
+// 하얀 공간 한가운데 평범한 단층집. 창문은 다 깜깜하고, 현관문 밑으로 고시원 형광등 빛이 샌다.
+const HW = 6.4, HD = 5.2, HH = 2.95, ROOF_UP = 1.55, EAVE = 0.45, DOOR_OFF = -1.15, DOOR_W = 1.0, DOOR_H = 2.1;
+function makeStuccoTex() {
+  const c = cnv(512, 512), g = c.getContext('2d');
+  g.fillStyle = '#efe6d6'; g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 5200; i++) {
+    const v = Math.random();
+    g.fillStyle = v < 0.5 ? `rgba(120,100,80,${0.05 + Math.random() * 0.08})` : `rgba(255,255,255,${0.2 + Math.random() * 0.3})`;
+    g.fillRect(Math.random() * 512, Math.random() * 512, 1 + Math.random() * 2.2, 1 + Math.random() * 2.2);
+  }
+  // 빗물 자국
+  for (let i = 0; i < 9; i++) {
+    const x = Math.random() * 512, w = 6 + Math.random() * 18;
+    const gr = g.createLinearGradient(0, 0, 0, 512); gr.addColorStop(0, 'rgba(110,96,80,0.09)'); gr.addColorStop(0.5, 'rgba(110,96,80,0.03)'); gr.addColorStop(1, 'rgba(110,96,80,0)');
+    g.fillStyle = gr; g.fillRect(x, 0, w, 220 + Math.random() * 200);
+  }
+  const t = texOf(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+function makeBaseTex() {
+  const c = cnv(512, 128), g = c.getContext('2d');
+  g.fillStyle = '#b9b2a5'; g.fillRect(0, 0, 512, 128);
+  for (let i = 0; i < 1500; i++) { g.fillStyle = `rgba(60,55,50,${Math.random() * 0.12})`; g.fillRect(Math.random() * 512, Math.random() * 128, 2, 2); }
+  g.strokeStyle = 'rgba(70,64,58,0.5)'; g.lineWidth = 3;
+  for (let y = 0; y <= 128; y += 64) { g.beginPath(); g.moveTo(0, y); g.lineTo(512, y); g.stroke(); }
+  for (let r = 0; r < 2; r++) for (let x = (r ? 64 : 0); x < 512; x += 128) { g.beginPath(); g.moveTo(x, r * 64); g.lineTo(x, r * 64 + 64); g.stroke(); }
+  const t = texOf(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+function makeRoofTex() {
+  const c = cnv(512, 512), g = c.getContext('2d');
+  g.fillStyle = '#4a5060'; g.fillRect(0, 0, 512, 512);
+  for (let row = 0; row < 8; row++) {
+    const y = row * 64;
+    for (let col = -1; col < 6; col++) {
+      const x = col * 96 + (row % 2) * 48;
+      const v = 0.9 + Math.random() * 0.2;
+      g.fillStyle = `rgb(${74 * v | 0},${80 * v | 0},${96 * v | 0})`; g.fillRect(x + 2, y + 2, 92, 60);
+      g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(x + 2, y + 2, 92, 6);
+    }
+    g.fillStyle = 'rgba(20,22,30,0.55)'; g.fillRect(0, y + 58, 512, 6);
+  }
+  const t = texOf(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+function makeDoorTex() {
+  const c = cnv(256, 512), g = c.getContext('2d');
+  g.fillStyle = '#2c2e35'; g.fillRect(0, 0, 256, 512);
+  for (const [x, y, w, h] of [[34, 40, 188, 190], [34, 262, 188, 190]]) {
+    g.fillStyle = '#353841'; g.fillRect(x, y, w, h);
+    g.strokeStyle = '#1b1c21'; g.lineWidth = 5; g.strokeRect(x, y, w, h);
+    g.strokeStyle = 'rgba(255,255,255,0.08)'; g.lineWidth = 2; g.strokeRect(x + 6, y + 6, w - 12, h - 12);
+  }
+  g.fillStyle = '#8d9099'; g.fillRect(0, 478, 256, 26);
+  g.fillStyle = 'rgba(255,255,255,0.25)'; g.fillRect(0, 478, 256, 4);
+  return texOf(c);
+}
+function makeInsideTex() {
+  // 열린 문 안: 깜깜한데 저 안쪽 바닥에 형광등 빛이 희미하게
+  const c = cnv(128, 256), g = c.getContext('2d');
+  g.fillStyle = '#0c0d10'; g.fillRect(0, 0, 128, 256);
+  const gr = g.createRadialGradient(64, 250, 4, 64, 250, 120);
+  gr.addColorStop(0, 'rgba(190,255,180,0.55)'); gr.addColorStop(0.35, 'rgba(120,190,120,0.18)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 256);
+  return texOf(c);
+}
+function makeGlowTex() {
+  const c = cnv(128, 128), g = c.getContext('2d');
+  const gr = g.createRadialGradient(64, 64, 2, 64, 64, 62);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.4, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  return texOf(c);
+}
+const HOUSE = {
+  roofMats: [], cineHide: false, on: false, used: false, x: 0, z: 0, dx: 0, dz: 0, fade: 1, fk: 1, at: 0, door: 0, doorTo: 0, enter: null, mats: [], glowT: 0, flk: 0,
+  group: new THREE.Group(), leaf: null, leak: null, pool: null, inside: null, lockLed: null, arrow: { x: 0, z: 0, hy: 2.1, state: 'house' },
+};
+HOUSE.group.visible = false;
+scene.add(HOUSE.group);
+const HOUSE_OUT = outlineMat();
+(() => {
+  const H = HOUSE, grp = H.group;
+  const stucco = makeStuccoTex(); stucco.repeat.set(2.2, 1);
+  const wallM = toon(0xffffff, { map: stucco }), baseM = toon(0xffffff, { map: makeBaseTex() }), roofT = makeRoofTex(); roofT.repeat.set(3, 1.6);
+  const roofM = toon(0xffffff, { map: roofT }), trimM = toon('#f7f5ef'), darkM = toon('#2b2d33'), frameM = toon('#3a3c43');
+  const glassM = toon('#1b2030'), curtainM = toon('#e7dcc6'), metalM = toon('#a7aab3'), stepM = toon('#c7c2b8'), matM = toon('#5d4a3a'), pipeM = toon('#9b9ea6');
+  const doorM = toon(0xffffff, { map: makeDoorTex() });
+  H.mats.push(wallM, baseM, roofM, trimM, darkM, frameM, glassM, curtainM, metalM, stepM, matM, pipeM, doorM, HOUSE_OUT);
+  H.roofMats = [roofM, darkM, HOUSE_OUT];   // 가릴 때 지붕(과 윤곽선)은 벽보다 훨씬 옅게
+  const add = (geo, mat, x, y, z, outline = true, parent = grp) => {
+    const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; parent.add(m);
+    if (outline) m.add(new THREE.Mesh(geo, HOUSE_OUT));
+    return m;
+  };
+  const fz = HD / 2;
+  // 벽, 기단
+  add(new THREE.BoxGeometry(HW, HH, HD), wallM, 0, HH / 2, 0);
+  const baseG = new THREE.BoxGeometry(HW + 0.08, 0.42, HD + 0.08);
+  { const uv = baseG.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setX(i, uv.getX(i) * 6); }
+  add(baseG, baseM, 0, 0.21, 0, false);
+  // 박공 (옆면 세모 벽)
+  const tri = new THREE.Shape(); tri.moveTo(-fz, 0); tri.lineTo(fz, 0); tri.lineTo(0, ROOF_UP); tri.closePath();
+  for (const sx of [-1, 1]) {
+    const g = new THREE.ExtrudeGeometry(tri, { depth: 0.02, bevelEnabled: false });
+    g.rotateY(Math.PI / 2); g.translate(sx * (HW / 2) - 0.01, HH, 0);
+    add(g, wallM, 0, 0, 0, false);
+  }
+  // 지붕 두 장 + 용마루 + 처마 끝
+  const run = fz + EAVE, slope = Math.atan2(ROOF_UP + EAVE * ROOF_UP / fz, run), len = Math.hypot(run, ROOF_UP + EAVE * ROOF_UP / fz);
+  for (const sz of [-1, 1]) {
+    const g = new THREE.BoxGeometry(HW + 0.8, 0.13, len + 0.06);
+    const m = add(g, roofM, 0, HH + ROOF_UP / 2 - EAVE * ROOF_UP / fz / 2 + 0.06, sz * run / 2);
+    m.rotation.x = sz * slope;
+    const fascia = add(new THREE.BoxGeometry(HW + 0.84, 0.16, 0.06), trimM, 0, HH - EAVE * ROOF_UP / fz + 0.01, sz * (run + 0.01), false);
+    fascia.rotation.x = sz * slope * 0.15;
+  }
+  add(new THREE.BoxGeometry(HW + 0.8, 0.16, 0.24), darkM, 0, HH + ROOF_UP + 0.1, 0);
+  // 홈통
+  add(new THREE.CylinderGeometry(0.045, 0.045, HH - 0.1, 10), pipeM, HW / 2 - 0.12, (HH - 0.1) / 2, fz + 0.08, false);
+  // 현관: 문틀, 안쪽(깜깜), 문짝(오른쪽 경첩, 밖으로 열림), 도어락, 손잡이
+  const dx = DOOR_OFF;
+  for (const [x, w, y, h] of [[dx - DOOR_W / 2 - 0.06, 0.12, DOOR_H / 2 + 0.03, DOOR_H + 0.06], [dx + DOOR_W / 2 + 0.06, 0.12, DOOR_H / 2 + 0.03, DOOR_H + 0.06], [dx, DOOR_W + 0.24, DOOR_H + 0.09, 0.12]]) add(new THREE.BoxGeometry(w, h, 0.1), frameM, x, y, fz + 0.03);
+  H.inside = new THREE.Mesh(new THREE.PlaneGeometry(DOOR_W, DOOR_H), new THREE.MeshBasicMaterial({ map: makeInsideTex() }));
+  H.inside.position.set(dx, DOOR_H / 2, fz + 0.006); grp.add(H.inside); H.mats.push(H.inside.material);
+  const pivot = new THREE.Group(); pivot.position.set(dx + DOOR_W / 2, 0, fz + 0.045); grp.add(pivot);
+  const leaf = add(new THREE.BoxGeometry(DOOR_W - 0.02, DOOR_H - 0.02, 0.05), doorM, -DOOR_W / 2, DOOR_H / 2, 0, true, pivot);
+  const lock = add(new THREE.BoxGeometry(0.075, 0.24, 0.04), toon('#121318'), -(DOOR_W - 0.16), 1.18, 0.045, false, pivot);
+  H.lockLed = new THREE.Mesh(new THREE.PlaneGeometry(0.035, 0.012), new THREE.MeshBasicMaterial({ color: 0x4fc8ff })); H.lockLed.position.set(0, 0.07, 0.021); lock.add(H.lockLed);
+  const lever = add(new THREE.BoxGeometry(0.15, 0.025, 0.03), metalM, -(DOOR_W - 0.2), 1.0, 0.055, false, pivot);
+  H.mats.push(lock.material, H.lockLed.material);
+  H.leaf = pivot;
+  // 문 밑으로 새는 빛 + 계단 위에 번진 빛
+  H.leak = new THREE.Mesh(new THREE.PlaneGeometry(DOOR_W - 0.06, 0.03), new THREE.MeshBasicMaterial({ color: 0xe3ffd6 }));
+  H.leak.position.set(dx, 0.117, fz + 0.074); grp.add(H.leak); H.mats.push(H.leak.material);
+  // 현관 계단, 매트, 등
+  add(new THREE.BoxGeometry(1.6, 0.1, 0.95), stepM, dx, 0.05, fz + 0.5);
+  const mat = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.012, 0.5), matM); mat.position.set(dx, 0.106, fz + 0.45); grp.add(mat);
+  H.pool = new THREE.Mesh(new THREE.PlaneGeometry(1.45, 0.8), new THREE.MeshBasicMaterial({ map: makeGlowTex(), color: 0x6fe266, transparent: true, opacity: 0.7, depthWrite: false }));
+  H.pool.rotation.x = -Math.PI / 2; H.pool.position.set(dx, 0.122, fz + 0.27); H.pool.renderOrder = 2; grp.add(H.pool); H.mats.push(H.pool.material);
+  const lamp = add(new THREE.BoxGeometry(0.2, 0.26, 0.14), darkM, dx + DOOR_W / 2 + 0.38, 2.15, fz + 0.08);
+  const lampGlass = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.18, 0.02), toon('#5b6170')); lampGlass.position.set(0, 0, 0.075); lamp.add(lampGlass); H.mats.push(lampGlass.material);
+  // 창문: 앞에 큰 창 하나, 문 왼쪽 작은 창, 옆면에 하나씩 (다 깜깜)
+  const win = (x, y, z, w, h, ry, curtain) => {
+    const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ry; grp.add(g);
+    const glass = new THREE.Mesh(new THREE.PlaneGeometry(w, h), glassM); glass.position.z = 0.012; g.add(glass);
+    const streak = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.16, h * 1.05), new THREE.MeshBasicMaterial({ color: 0x8090ad, transparent: true, opacity: 0.18, depthWrite: false }));
+    streak.position.set(-w * 0.18, 0, 0.016); streak.rotation.z = -0.5; g.add(streak); H.mats.push(streak.material);
+    if (curtain) { const cu = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.42, h * 0.96), curtainM); cu.position.set(w * 0.27, 0, 0.018); g.add(cu); }
+    const t = 0.07;
+    for (const [px, py, pw, ph] of [[0, h / 2 + t / 2, w + 2 * t, t], [0, -h / 2 - t / 2, w + 2 * t, t], [-w / 2 - t / 2, 0, t, h], [w / 2 + t / 2, 0, t, h], [0, 0, 0.04, h], [0, 0, w, 0.04]]) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(pw, ph, 0.06), trimM); m.position.set(px, py, 0.03); g.add(m);
+    }
+    const sill = new THREE.Mesh(new THREE.BoxGeometry(w + 0.3, 0.06, 0.16), trimM); sill.position.set(0, -h / 2 - 0.1, 0.07); g.add(sill);
+  };
+  win(1.35, 1.6, fz + 0.002, 1.7, 1.15, 0, true);
+  win(-2.55, 1.65, fz + 0.002, 0.7, 0.9, 0, false);
+  win(HW / 2 + 0.002, 1.6, -0.4, 1.2, 1.0, Math.PI / 2, false);
+  win(-HW / 2 - 0.002, 1.6, 0.3, 1.2, 1.0, -Math.PI / 2, true);
+  // 움직이지 않는 부분은 재질별로 한 덩어리로 합친다 (그리는 횟수 줄이기). 문짝·빛은 따로 둔다.
+  grp.updateMatrixWorld(true);
+  const keep = new Set([H.inside, H.leak, H.pool]);
+  const byMat = new Map(), outl = [], drop = [];
+  grp.traverse((o) => {
+    if (!o.isMesh || keep.has(o)) return;
+    for (let q = o.parent; q && q !== grp; q = q.parent) if (q === pivot) return;
+    const g = o.geometry.clone().applyMatrix4(o.matrixWorld);
+    if (o.material === HOUSE_OUT) outl.push(g);
+    else { if (!byMat.has(o.material)) byMat.set(o.material, []); byMat.get(o.material).push(g); }
+    drop.push(o);
+  });
+  for (const o of drop) if (o.parent) o.parent.remove(o);
+  for (const [mat, gs] of byMat) { const m = new THREE.Mesh(mergeGeos(gs), mat); m.castShadow = !mat.transparent; grp.add(m); }
+  if (outl.length) grp.add(new THREE.Mesh(mergeGeos(outl), HOUSE_OUT));
+})();
+// 앞(남쪽, 화면 아래쪽)으로 문이 난 집을 (x, z) 중심에 세운다
+function housePlace(x, z) {
+  const H = HOUSE;
+  H.x = x; H.z = z; H.dx = x + DOOR_OFF; H.dz = z + HD / 2 + 0.62;
+  H.arrow.x = H.dx; H.arrow.z = z + HD / 2 + 0.2;
+  H.group.position.set(x, 0, z); H.group.visible = true; H.on = true;
+  H.door = H.doorTo = 0; H.leaf.rotation.y = 0; H.enter = null; houseFade(1);
+  for (const p of live) houseCollide(p, 0.4);
+}
+function houseHide() { const H = HOUSE; H.on = false; H.used = false; H.enter = null; H.at = 0; H.fk = 1; H.group.visible = false; H.door = H.doorTo = 0; H.leaf.rotation.y = 0; houseFade(1); }
+// 집 뒤로 가면 집을 반쯤 투명하게 (주인공이 가려지지 않게)
+function houseFade(k) {
+  const H = HOUSE;
+  if (Math.abs(H.fade - k) < 0.005 && (k === 1) === (H.fade === 1)) return;
+  const was = H.fade < 1; H.fade = k; const now = k < 1;
+  for (const m of H.mats) {
+    if (m === H.pool.material) { m.opacity = 0.7 * k; continue; }
+    if (was !== now) { m.transparent = now || !!m.userData.alwaysTr; m.depthWrite = !now && !m.userData.alwaysTr; m.needsUpdate = true; }
+    m.opacity = (H.roofMats.includes(m) ? k * k * k : k) * (m.userData.baseOp || 1);
+  }
+}
+for (const m of HOUSE.mats) { if (m.transparent) { m.userData.alwaysTr = true; m.userData.baseOp = m.opacity; } }
+// 동그라미(사람)를 집 벽 밖으로 밀어냄. 밀렸으면 벽의 바깥 방향을 돌려준다
+const _hn = { x: 0, z: 0 };
+function houseCollide(o, r) {
+  const H = HOUSE;
+  if (!H.on) return null;
+  const x0 = H.x - HW / 2 - 0.05, x1 = H.x + HW / 2 + 0.05, z0 = H.z - HD / 2 - 0.05, z1 = H.z + HD / 2 + 0.05;
+  const cx = clamp(o.x, x0, x1), cz = clamp(o.z, z0, z1);
+  let dx = o.x - cx, dz = o.z - cz, d2 = dx * dx + dz * dz;
+  if (d2 >= r * r) return null;
+  if (d2 < 1e-8) {
+    const l = o.x - x0, rr = x1 - o.x, t = o.z - z0, b = z1 - o.z, m = Math.min(l, rr, t, b);
+    if (m === l) { o.x = x0 - r; _hn.x = -1; _hn.z = 0; } else if (m === rr) { o.x = x1 + r; _hn.x = 1; _hn.z = 0; } else if (m === t) { o.z = z0 - r; _hn.x = 0; _hn.z = -1; } else { o.z = z1 + r; _hn.x = 0; _hn.z = 1; }
+    return _hn;
+  }
+  const d = Math.sqrt(d2), push = r - d;
+  o.x += dx / d * push; o.z += dz / d * push;
+  _hn.x = dx / d; _hn.z = dz / d;
+  return _hn;
+}
+
+// 총알은 집 벽을 뚫지 못한다: 벽까지의 거리 (안 맞으면 Infinity)
+function houseRayT(ox, oz, dx, dz) {
+  const H = HOUSE;
+  if (!H.on) return Infinity;
+  let t0 = -Infinity, t1 = Infinity;
+  for (const [o, d, a, b] of [[ox, dx, H.x - HW / 2, H.x + HW / 2], [oz, dz, H.z - HD / 2, H.z + HD / 2]]) {
+    if (Math.abs(d) < 1e-9) { if (o < a || o > b) return Infinity; continue; }
+    let u = (a - o) / d, v = (b - o) / d; if (u > v) { const w = u; u = v; v = w; }
+    if (u > t0) t0 = u; if (v < t1) t1 = v;
+  }
+  return t1 >= t0 && t0 > 0 ? t0 : Infinity;
+}
+// 카메라에서 이 점까지 사이에 집이 끼어 있는지 (pad: 집 상자를 얼마나 넓혀 볼지, top: 지붕 높이로 칠 높이)
+function houseBlocks(x, y, z, pad, top) {
+  const H = HOUSE;
+  const ox = camera.position.x, oy = camera.position.y, oz = camera.position.z;
+  let t0 = 0, t1 = 1;
+  for (const [o, d, a, b] of [[ox, x - ox, H.x - HW / 2 - pad, H.x + HW / 2 + pad], [oy, y - oy, 0, top], [oz, z - oz, H.z - HD / 2 - pad, H.z + HD / 2 + pad]]) {
+    if (Math.abs(d) < 1e-9) { if (o < a || o > b) return false; continue; }
+    let u = (a - o) / d, v = (b - o) / d; if (u > v) { const w = u; u = v; v = w; }
+    if (u > t0) t0 = u; if (v < t1) t1 = v;
+    if (t0 > t1) return false;
+  }
+  return true;
+}
+// 집 뒤 사람의 말풍선이 지붕 위에 뜨지 않게 (집이 반투명해졌을 때는 그대로 보여 줌)
+function houseHides(x, y, z) {
+  const H = HOUSE;
+  return H.on && H.group.visible && H.fade >= 0.6 && houseBlocks(x, y, z, -0.1, HH + ROOF_UP * 0.6);
+}
+function houseNear(x, z, m) { const H = HOUSE; return H.on && Math.abs(x - H.x) < HW / 2 + m && Math.abs(z - H.z) < HD / 2 + m; }
+// 벽에 막힌 사람은 막힌 면을 따라 쫓는 사람이 있는 쪽 모서리로 돌아간다 (모서리에 닿으면 다시 곧장)
+function houseSlide(p, hx, hz) {
+  const n = houseCollide(p, 0.3);
+  if (!n) return;
+  const vn = p.vx * n.x + p.vz * n.z;
+  if (vn < 0) { p.vx -= vn * n.x; p.vz -= vn * n.z; }
+  if (!p.wallC || G.t - p.wallT > 1.0) {
+    const H = HOUSE, m = 0.75, x0 = H.x - HW / 2 - m, x1 = H.x + HW / 2 + m, z0 = H.z - HD / 2 - m, z1 = H.z + HD / 2 + m;
+    if (Math.abs(n.z) >= Math.abs(n.x)) {   // 앞뒤 면: 좌우 모서리 중 쫓는 사람 쪽
+      const side = Math.abs(hx - H.x) > 0.5 ? hx - H.x : p.x - H.x;
+      p.wallC = [side < 0 ? x0 : x1, n.z < 0 ? z0 : z1];
+    } else {                                 // 옆면: 앞뒤 모서리 중 쫓는 사람 쪽
+      const side = Math.abs(hz - H.z) > 0.5 ? hz - H.z : p.z - H.z;
+      p.wallC = [n.x < 0 ? x0 : x1, side < 0 ? z0 : z1];
+    }
+  }
+  p.wallT = G.t;
+}
+
 let CAMX = 0;
 
 // ───────────────────────── 게임 상태 ─────────────────────────
@@ -2818,7 +3212,7 @@ const ME = {
   pose: new Float32Array(NPOSE), tgt: new Float32Array(NPOSE),
   aim: [0, 0], aimPt: [new THREE.Vector3(), new THREE.Vector3()], lastShot: [-9, -9], recoil: [0, 0],
   spineYaw: 0, stab: null, clingers: [], muzzle: [new THREE.Vector3(), new THREE.Vector3()],
-  slotOcc: null, five: null, isMe: true,
+  slotOcc: null, five: null, isMe: true, turn: 0, turnTo: 0,
 };
 const SLOTS = [
   { x: 0.0, z: -0.37, kind: 'stand' },
@@ -2877,6 +3271,7 @@ function newPerson(x, z, opt = {}) {
     social: null, socialCD: rand(1.2, 3.8), socialFriend: null, socialReturn: 0, socialPlea: false,
     hx: x, hy: 1.4, hz: z, tx: x, ty: 0.8, tz: z, e1x: x, e1y: 1.2, e1z: z, e2x: x, e2y: 1.2, e2z: z,
   };
+  if (HOUSE.on && p.state !== 'cling') houseCollide(p, 0.4);
   if (female && kind === 0) p.voiceKey = pick(['f_F1', 'f_F2', 'f_F3', 'f_F4', 'f_F5']);
   if (!female && kind === 0) p.voiceKey = pick(['f_M2', 'f_M3', 'f_M4', 'f_M5']);
   if (opt.slot !== undefined) { p.slot = opt.slot; p.clingT = 1; p.cx0 = SLOTS[opt.slot].x; p.cz0 = SLOTS[opt.slot].z; }
@@ -3084,7 +3479,12 @@ function crowdSim(dt) {
       if (p.hostT <= 0 || !hostActive(p.host)) { p.hostT = rand(0.35, 0.7); p.host = pickHost(p); }
       const H = p.host;
       const dx = H.x - p.x, dz = H.z - p.z, d = Math.hypot(dx, dz) || 0.001;
-      const ux = dx / d, uz = dz / d;
+      let ux = dx / d, uz = dz / d;
+      // 집 벽에 막혔으면 정해 둔 모서리 쪽으로 돌아간다
+      if (p.wallC) {
+        const cx = p.wallC[0] - p.x, cz = p.wallC[1] - p.z, cl = Math.hypot(cx, cz);
+        if (G.t - p.wallT > 0.6 || cl < 0.25) p.wallC = null; else { ux = cx / cl; uz = cz / cl; }
+      }
       let sx = 0, sz = 0;
       for (let b = 0; b < n; b++) {
         if (b === a) continue;
@@ -3105,6 +3505,7 @@ function crowdSim(dt) {
       if (d < keep) { wx -= ux * (keep - d) * 8; wz -= uz * (keep - d) * 8; }
       p.vx = approach(p.vx, wx, 6, dt); p.vz = approach(p.vz, wz, 6, dt);
       p.x += p.vx * dt; p.z += p.vz * dt;
+      if (HOUSE.on) houseSlide(p, H.x, H.z);
       p.spd = Math.hypot(p.vx, p.vz);
       p.phase += p.spd * dt / (p.kind === 1 ? 0.9 : 0.5) * Math.PI;
       if (p.state === 'press') p.phase += dt * 3;
@@ -3120,6 +3521,7 @@ function crowdSim(dt) {
       p.clingT += dt;
       const H = p.host, s = SLOTS[p.slot], k = easeOutCubic(p.clingT / 0.22);
       p.x = H.x + lerp(p.cx0, s.x, k); p.z = H.z + lerp(p.cz0, s.z, k);
+      if (HOUSE.on) houseCollide(p, 0.22);
       p.yaw = angleApproach(p.yaw, Math.atan2(-s.x, -s.z), 14, dt);
       speechTick(p, dt, H === ME ? 0.5 : Math.hypot(ME.x - p.x, ME.z - p.z));
       continue;
@@ -3127,6 +3529,7 @@ function crowdSim(dt) {
     if (p.state === 'dying') {
       p.dieT += dt;
       p.x += p.kbx * dt; p.z += p.kbz * dt;
+      if (HOUSE.on) { const n = houseCollide(p, 0.3); if (n) { const vn = p.kbx * n.x + p.kbz * n.z; if (vn < 0) { p.kbx -= vn * n.x * 1.5; p.kbz -= vn * n.z * 1.5; } } }
       const damp = Math.exp(-5.5 * dt); p.kbx *= damp; p.kbz *= damp;
       p.yaw += p.spin * dt * Math.max(0, 1 - p.dieT / p.fallT);
       if (!p.landed && p.dieT >= p.fallT) {
@@ -3478,6 +3881,7 @@ function meSim(dt) {
   const sp = G.ctrl ? ME.speed * eff * mul * lerp(1, 0.45, ME.aimStance) : 0;
   ME.vx = approach(ME.vx, dx * sp, 9, dt); ME.vz = approach(ME.vz, dz * sp, 9, dt);
   ME.x += ME.vx * dt; ME.z += ME.vz * dt;
+  if (HOUSE.on && G.state !== 'enter') { const n = houseCollide(ME, 0.3); if (n) { const vn = ME.vx * n.x + ME.vz * n.z; if (vn < 0) { ME.vx -= vn * n.x; ME.vz -= vn * n.z; } } }
   const v = Math.hypot(ME.vx, ME.vz);
   ME.phase += v * dt / 0.6 * Math.PI;
   ME.walk = approach(ME.walk, clamp(v / 2.4, 0, 1), 8, dt);
@@ -3538,13 +3942,16 @@ function meAnimate(dt) {
   o[P.LSZ] = 0.13; o[P.RSZ] = -0.13; o[P.LEX] = -0.4; o[P.REX] = -0.4;
   for (let i = 0; i < NPOSE; i++) ME.pose[i] = approach(ME.pose[i], o[i], 16, dt);
   ME.pose[P.LIFT] = 0;
-  applyRig(MR, ME.pose, ME.x, ME.z, 0);
+  ME.turn = angleApproach(ME.turn, ME.turnTo, 10, dt);
+  applyRig(MR, ME.pose, ME.x, ME.z, ME.turn);
   // 조준 / 칼질 덮어쓰기
   for (const h of [0, 1]) {
     const stabbing = ME.stab && ME.stab.hand === h;
     const fiving = ME.five && ME.five.h === h;
+    const sg = h === 1 && SG.on;
     KNIVES[h].visible = !fiving && (stabbing || (ME.clingers.length > 0 && ((h === 0 && ME.clingers.some((p) => SLOTS[p.slot].x >= 0)) || (h === 1 && ME.clingers.some((p) => SLOTS[p.slot].x < 0)))));
-    GUNS[h].visible = !fiving && !KNIVES[h].visible;
+    GUNS[h].visible = !fiving && !KNIVES[h].visible && !sg;
+    if (h === 1) SG.model.visible = SG.on && !fiving && !KNIVES[1].visible;
     if (fiving) {
       const f = ME.five;
       aimArm(h, f.pt, f.blend, 0, -0.25);
@@ -3555,12 +3962,15 @@ function meAnimate(dt) {
       const tp = st.target;
       _tgtV.set(tp.tx, tp.ty, tp.tz);
       aimArm(h, _tgtV, 1, 0.1 * back, -1.7 * (1 - ext) * 0.9);
-    } else if (ME.aim[h] > 0.01) {
-      aimArm(h, ME.aimPt[h], ME.aim[h], ME.recoil[h] * 0.9, -0.06);
+    } else {
+      // 산탄총은 쏘지 않을 땐 옆으로 비스듬히 내려 든다
+      if (sg && ME.aim[1] < 0.999) { _tgtV.set(ME.x - 1.5, 0.12, ME.z + 0.9); aimArm(1, _tgtV, 1, 0, -0.22); }
+      if (ME.aim[h] > 0.01) aimArm(h, ME.aimPt[h], ME.aim[h], ME.recoil[h] * (sg ? 0.45 : 0.9), -0.06);
     }
   }
   MR.root.updateMatrixWorld(true);
   for (const h of [0, 1]) { ME.muzzle[h].copy(MUZZLE_LOCAL).applyMatrix4(GUNS[h].matrixWorld); }
+  if (SG.on) SG.muzzleW.copy(SG_MUZZLE).applyMatrix4(SG.model.matrixWorld);
   meSparkles(dt);
 }
 function meSparkles(dt) {
@@ -3590,6 +4000,7 @@ function findTarget() {
   let best = null, bd = RANGE * RANGE;
   for (const p of live) {
     if (!shootable(p)) continue;
+    if (HOUSE.on) { const dx = p.x - ME.x, dz = p.z - ME.z, d = Math.hypot(dx, dz) || 1; if (houseRayT(ME.x, ME.z, dx / d, dz / d) < d) continue; }   // 집 뒤에 가린 사람은 안 겨눔
     // 화면에 보이는 사람만 겨눈다
     toScreen(p.tx, p.ty, p.tz, _sc);
     if (_sc.z > 1 || _sc.x < 4 || _sc.x > VW - 4 || _sc.y < 4 || _sc.y > VH - 4) continue;
@@ -3694,7 +4105,7 @@ function spawnItem(kind = itemNextKind, x, z) {
     let found = false;
     for (let n = 0; n < 36; n++) {
       const a = rand(0, TAU), r = rand(2.7, 4.7); x = ME.x + Math.sin(a) * r; z = ME.z + Math.cos(a) * r;
-      if (FIELD_ITEMS.some(i => i.on && Math.hypot(i.x - x, i.z - z) < 1.5)) continue;
+      if (FIELD_ITEMS.some(i => i.on && Math.hypot(i.x - x, i.z - z) < 1.5) || houseNear(x, z, 0.6)) continue;
       toScreen(x, .65, z, _sc);
       if (_sc.z > 1 || _sc.x < 42 || _sc.x > VW - 42 || _sc.y < VH * .20 || _sc.y > VH * .73) continue;
       found = true; break;
@@ -3747,6 +4158,7 @@ function poweredKill(p, dx, dz, impact) {
   return true;
 }
 function fireRay(mz, dx, dz, maxT, pierce, impact, splash, shotgun) {
+  if (HOUSE.on) maxT = Math.min(maxT, houseRayT(mz.x, mz.z, dx, dz));
   const hits = rayHits(mz.x, mz.z, dx, dz, maxT);
   let endT = Math.min(RANGE, maxT);
   const cap = pierce ? 5 : shotgun ? 1 : 2;
@@ -3790,10 +4202,13 @@ function shoot(forced) {
   let ax, ay, az;
   if (tgt) { ax = tgt.x; ay = 0.86; az = tgt.z; }
   else { const v = Math.hypot(ME.vx, ME.vz); const dx = v > 0.3 ? ME.vx / v : 0, dz = v > 0.3 ? ME.vz / v : 1; ax = ME.x + dx * 8; ay = 0.9; az = ME.z + dz * 8; }
+  // 산탄총은 겨눌 사람이 있을 때만 (허공에 버리지 않게)
+  if (SG.on && tgt && !forced && SG.cd <= 0 && SG.dropT < 0 && !(ME.five && ME.five.h === 1)) { shootShotgunOut(ax, ay, az); return; }
   const relx = ax - ME.x;
   let h = relx >= 0 ? 0 : 1;
   if (G.t - ME.lastShot[h] < 0.1 && G.t - ME.lastShot[1 - h] > 0.12) h = 1 - h;
   if (ME.five && ME.five.h === h) h = 1 - h;   // 하이파이브 중인 손은 쉰다
+  if (SG.on) { if (ME.five && ME.five.h === 0) return; h = 0; }   // 오른손엔 산탄총
   ME.lastShot[h] = G.t; G.lastShotT = G.t;
   ME.aim[h] = 1; ME.aimPt[h].set(ax, ay, az); ME.recoil[h] = 1;
   if (!G.firedOnce) { G.firedOnce = true; $('weapon').classList.remove('pulse'); }
@@ -3866,6 +4281,99 @@ function stabHit(c, hand) {
   addShirtBlood(Math.floor(rand(2, 5)));
   if (Math.random() < 0.6) addMeFaceBlood(Math.floor(rand(1, 4)));
   CAM.shake = Math.max(CAM.shake, 0.07);
+}
+
+// ── 집에서 들고 나온 산탄총 (오른손) ──
+// 장전되면 한 방에 아홉 알을 부채꼴로 쏜다. 한 알이 둘까지 쓰러뜨리고, 맞은 사람은 멀리 날아간다. 다 쓰면 버리고 다시 쌍권총.
+const SG_CD = 0.46, SG_PELLETS = 9, SG_SPREAD = 0.31, SG_RANGE = 8.2;   // 권총 한 발 사이에 한 방씩: 쾅-탕-쾅-탕
+const sgNEl = $('sgN');
+function sgBadge(pop) {
+  sgNEl.hidden = !SG.on;
+  if (!SG.on) return;
+  sgNEl.textContent = SG.shells;
+  if (pop) { sgNEl.classList.remove('pop'); void sgNEl.offsetWidth; sgNEl.classList.add('pop'); }
+}
+function sgEquip(n) {
+  SG.on = true; SG.shells = n; SG.cd = 0; SG.dropT = -1; SG.ejectT = -1; SG.pumpT = 9; SG.flashT = 0;
+  weaponEl.classList.add('sgon'); sgBadge(false);
+}
+function shootShotgunOut(ax, ay, az) {
+  ME.lastShot[1] = G.t; G.lastShotT = G.t;
+  ME.aim[1] = 1; ME.aimPt[1].set(ax, ay, az); ME.recoil[1] = 1.0;
+  // 맞는 판정은 몸 중심에서 (총열이 길어 코앞의 사람을 지나치지 않게), 궤적은 총구에서
+  const mz = SG.muzzleW;
+  let dx = ax - ME.x, dz = az - ME.z; const dl = Math.hypot(dx, dz) || 1; dx /= dl; dz /= dl;
+  const cap = POWERS.pierce > 0 ? 4 : 2;
+  for (let i = 0; i < SG_PELLETS; i++) {
+    const a = (i / (SG_PELLETS - 1) - 0.5) * 2 * SG_SPREAD + rand(-0.03, 0.03);
+    const c = Math.cos(a), sn = Math.sin(a);
+    const rx = dx * c + dz * sn, rz = dz * c - dx * sn;
+    const wall = houseRayT(ME.x, ME.z, rx, rz);
+    const hits = rayHits(ME.x, ME.z, rx, rz, Math.min(SG_RANGE, wall));
+    let n = 0, endT = Math.min(SG_RANGE * rand(0.72, 1), wall);
+    for (let j = 0; j < hits.length && n < cap; j++) {
+      const p = hits[j].p;
+      if (!shootable(p)) continue;
+      kill(p, rx, rz, 'shot');
+      p.kbx *= 2.2; p.kbz *= 2.2; p.fly = 0.38; p.spin *= 1.6; p.fallT = Math.max(p.fallT, 0.58);
+      n++; endT = hits[j].t;
+    }
+    if (endT > 1.1) addTracer(mz.x, mz.y, mz.z, ME.x + rx * endT, lerp(mz.y, 0.86, 0.85), ME.z + rz * endT);
+  }
+  SG.flash.visible = true; SG.flashT = 0.07; SG.flash.material.rotation = rand(0, TAU);
+  SG.shells--; SG.cd = SG_CD; SG.pumpT = 0;
+  sfxShotgunOut(clamp((mz.x - CAMX) / 5, -1, 1));
+  if (SG.shells > 0) { sfxPumpOut(0.16); SG.ejectT = 0.2; }
+  else { SG.dropT = 0.5; SG.pumpT = 9; }
+  CAM.shake = Math.max(CAM.shake, 0.09);
+  sgBadge(true);
+}
+function sgTick(dt) {
+  if (!SG.on) return;
+  SG.cd -= dt;
+  if (SG.ejectT > 0) {
+    SG.ejectT -= dt;
+    if (SG.ejectT <= 0) {
+      // 펌프를 당기면 빈 탄피가 옆으로 튄다
+      _v2.set(0, 0.05 * SG_S, 0.1 * SG_S).applyMatrix4(SG.model.matrixWorld);
+      const ap = ME.aimPt[1], ex = ap.x - ME.x, ez = ap.z - ME.z, el = Math.hypot(ex, ez) || 1;
+      ejectShell(_v2.x, _v2.y, _v2.z, ex / el, ez / el);
+    }
+  }
+  if (SG.dropT > 0) { SG.dropT -= dt; if (SG.dropT <= 0) sgDiscard(false); }
+}
+function sgDiscard(quiet) {
+  if (!SG.on) return;
+  SG.on = false; SG.dropT = -1; SG.ejectT = -1; SG.model.visible = false; SG.flash.visible = false;
+  // 오른손 높이에서 떨어뜨리고, 그 손에는 다시 권총
+  MR.wrR.getWorldPosition(_v2);
+  sgDropAt(_v2.x, _v2.z, Math.max(0.25, _v2.y - 0.1));
+  if (!quiet) sfxGunDrop(screenPan(_v2.x, _v2.z), 0.28);
+  weaponEl.classList.remove('sgon'); sgBadge(false);
+}
+function sgReset() {
+  SG.on = false; SG.shells = 0; SG.cd = 0; SG.dropT = -1; SG.ejectT = -1; SG.pumpT = 9; SG.flashT = 0;
+  SG.model.visible = false; SG.flash.visible = false;
+  for (const g of SG.dropped) {
+    scene.remove(g);
+    g.traverse((n) => { if (n.geometry) n.geometry.dispose(); if (n.material && n.material !== OUT_MAT) n.material.dispose(); });
+  }
+  SG.dropped.length = 0;
+  weaponEl.classList.remove('sgon'); sgBadge(false);
+}
+function sgAnimate(dt) {
+  if (SG.flashT > 0) { SG.flashT -= dt; if (SG.flashT <= 0) SG.flash.visible = false; }
+  SG.pumpT += dt;
+  const t = SG.pumpT, k = t < 0.16 ? 0 : t < 0.26 ? (t - 0.16) / 0.1 : t < 0.38 ? 1 - (t - 0.26) / 0.12 : 0;
+  SG.pump.position.z = SG.pumpZ - k * 0.1 * SG_S;
+  for (const g of SG.dropped) {
+    const f = g.userData.fall;
+    if (!f || f.t >= 1) continue;
+    f.t = Math.min(1, f.t + dt / 0.3);
+    const e = easeInQuad(f.t);
+    g.position.y = lerp(f.y0, 0.045, e);
+    g.rotation.z = lerp(f.r0, Math.PI / 2, e);
+  }
 }
 
 // ───────────────────────── 붙잡혀 버티면 끝: 주변을 다 쓸어버리고 "싫어." ─────────────────────────
@@ -4152,13 +4660,15 @@ const allyVol = (a) => clamp(1.25 - Math.hypot(a.x - ME.x, a.z - ME.z) * 0.07, 0
 // ── 등장: 사람들에게 둘러싸여 붙잡힌 채로 ──
 function allySpawnUpdate() {
   if (G.allyNext >= ALLIES.length) return;
-  if (G.playT < G.allyT || G.playT > ALLY_LAST) return;
+  if (G.playT < G.allyT || G.playT > ALLY_LAST + (HOUSE.used ? 24 : 0)) return;
   if (ALLIES.some((a) => a.state === 'trapped' || a.state === 'freed' || a.state === 'five')) return;
   spawnTrapped(ALLIES[G.allyNext]);
   G.allyNext++;
 }
 function spawnTrapped(a) {
-  const ang = ALLY_DIR[a.k] + rand(-0.2, 0.2), r = rand(11.5, 13);
+  let ang = ALLY_DIR[a.k] + rand(-0.2, 0.2);
+  const r = rand(11.5, 13);
+  for (let i = 0; i < 12 && houseNear(ME.x + Math.sin(ang) * r, ME.z - Math.cos(ang) * r, 3.2); i++) ang += 0.45;   // 집 자리는 피해서
   a.x = ME.x + Math.sin(ang) * r; a.z = ME.z - Math.cos(ang) * r;
   a.vx = a.vz = 0; a.walk = 0; a.yaw = Math.atan2(ME.x - a.x, ME.z - a.z);
   a.state = 'trapped'; a.freeT = 0; a.cd = 0; a.target = null;
@@ -4214,7 +4724,7 @@ function fiveSim(a, dt) {
     showToast();
   }
   if (f.t >= 0.84) {
-    a.state = 'fight'; a.five = null; a.hideBat = a.hideKnife = false; ME.five = null; a.cd = 0.15; a.tgtT = 0;
+    a.state = 'fight'; a.five = null; a.hideBat = a.hideKnife = false; ME.five = null; a.cd = 0.15; a.tgtT = 0; a.fightAt = G.playT;
     G.allyT = Math.max(ALLY_AT[Math.min(G.allyNext, ALLY_AT.length - 1)], G.playT + ALLY_GAP);
   }
 }
@@ -4375,6 +4885,7 @@ function allySim(dt) {
       }
       a.vx = approach(a.vx, wx, 10, dt); a.vz = approach(a.vz, wz, 10, dt);
       a.x += a.vx * dt; a.z += a.vz * dt;
+      if (HOUSE.on) { const n = houseCollide(a, 0.3); if (n) { const vn = a.vx * n.x + a.vz * n.z; if (vn < 0) { a.vx -= vn * n.x; a.vz -= vn * n.z; } } }
     }
     a.spd = a.state === 'five' ? 0 : Math.hypot(a.vx, a.vz);
     a.phase += a.spd * dt / 0.6 * Math.PI;
@@ -4514,6 +5025,7 @@ function pleaBubbleTick(p, dt, d) {
   const cling = p.state === 'cling', mine = p.host === ME;
   if (cling && mine && !p.socialPlea) return;
   if (!onScreen(p.hx, p.hy + 0.18, p.hz) || _sc.y < 56 || _sc.y > VH - 55 || _sc.x < 4 || _sc.x > VW - 4) return;
+  if (houseHides(p.hx, p.hy + 0.18, p.hz)) return;
   if (bubbleCount() >= (cling ? 4 : 5)) return;
   if (p.bubble) removeBubble(p.bubble);
   const txt = cling ? '친구해주세요…' : (p.kind === 1 ? '친구해주세요!' : '친구해주세요…');
@@ -4554,7 +5066,7 @@ function updateBubbles(dt) {
     const x = o === ME ? ME.x : o.hx, z = o === ME ? ME.z : o.hz;
     toScreen(x, y, z, _bs);
     if (b.plea && (_bs.z < -1 || _bs.z > 1 || _bs.x < -40 || _bs.x > VW + 40 || _bs.y < 0 || _bs.y > VH + 40)) { removeBubble(b); continue; }
-    if (_bs.z > 1) { b.wrap.style.visibility = 'hidden'; continue; }
+    if (_bs.z > 1 || (o !== ME && houseHides(x, y, z))) { b.wrap.style.visibility = 'hidden'; continue; }
     b.wrap.style.visibility = '';
     if (b.wcache !== b.shown) { b.wcache = b.shown; b.hw = b.el.offsetWidth / 2; }
     const bx = clamp(_bs.x, b.hw + 6, VW - b.hw - 6);
@@ -4611,6 +5123,7 @@ function dangerFx(dt) {
 // 끝: 붙잡힌 채로 버티면 — 반짝, 칼로 매달린 사람부터, 쌍권총으로 주변을 다 쓸어버린 뒤 "싫어."
 function startOutburst() {
   if (G.state !== 'play') return;
+  sgDiscard(true);
   for (const a of ALLIES) if (a.state === 'trapped' && !a.clingers.length) a.rescued = true;
   G.state = 'over'; G.ctrl = false; G.firing = false; G.freeze = true; G.spawnDone = true;
   clearItems();
@@ -4641,8 +5154,9 @@ const _as = { x: 0, y: 0, z: 0 }, _as2 = { x: 0, y: 0, z: 0 };
 function updateArrow() {
   const pinned = ALLIES.filter((a) => a.rescued && a.pinned && a.clingers.length > 1 && a.pinT > 2.6);
   const urgent = G.state === 'play' && pinned.length > 0;
-  const a = urgent ? (pinned.includes(arrowTarget) ? arrowTarget : pinned.reduce((best, p) => !best || Math.hypot(p.x - ME.x, p.z - ME.z) < Math.hypot(best.x - ME.x, best.z - ME.z) ? p : best, null)) : G.trapped;
-  const want = !!a && (urgent || a.state === 'trapped') && G.state === 'play';
+  let a = urgent ? (pinned.includes(arrowTarget) ? arrowTarget : pinned.reduce((best, p) => !best || Math.hypot(p.x - ME.x, p.z - ME.z) < Math.hypot(best.x - ME.x, best.z - ME.z) ? p : best, null)) : G.trapped;
+  let want = !!a && (urgent || a.state === 'trapped') && G.state === 'play';
+  if (!want && G.state === 'play' && HOUSE.on && !HOUSE.used) { a = HOUSE.arrow; want = true; }
   rescueNoticeEl.hidden = !urgent;
   arrowEl.classList.toggle('urgent', urgent);
   if (!want) { arrowTarget = null; if (arrowShown) { arrowEl.hidden = true; arrowShown = false; } return; }
@@ -5088,6 +5602,8 @@ function resetWorld() {
   G.playT = 0; G.spawnAcc = 0; G.groupAcc = 0; G.ringNext = 0; G.spawnDone = false; G.firing = false; G.ctrl = false;
   G.stick.x = G.stick.z = 0;
   weaponEl.classList.remove('knife', 'pulse', 'down');
+  houseHide(); sgReset(); ME.turn = ME.turnTo = 0;
+  backHintEl.hidden = true;
 }
 function hideAllOverlays() {
   for (const id of ['intro', 'certA', 'result', 'slam', 'sub', 'title']) $(id).hidden = true;
@@ -5264,6 +5780,212 @@ $('mute').addEventListener('click', () => { audioInit(); setMuted(!MUTED); });
 setMuted(MUTED);
 if (!IS_TOUCH) document.body.classList.add('desk');
 
+// ───────────────────────── 집 드나들기 ─────────────────────────
+// 둘째 친구와 하이파이브하고 조금 뒤(못 구했어도 80초에는) 앞쪽 안개 속에 집이 선다. 화살표가 말없이 가리키고, 들어갈지는 마음대로.
+// 문 앞에서 문 쪽으로 밀면 화면이 어두워지고 gosiwon.html(1인칭 고시원)로 넘어간다. 나오면 이 페이지로 돌아와 그 자리에서 이어진다.
+const HOUSE_T0 = 48, HOUSE_T1 = 80;
+const linkFadeEl = $('linkFade'), backHintEl = $('backHint');
+function linkFade(color, to, dur) {
+  const el = linkFadeEl;
+  el.style.transition = 'none'; el.style.background = color; el.style.visibility = 'visible';
+  void el.offsetWidth;
+  el.style.transition = `opacity ${dur}s ${to > 0 ? 'ease-in' : 'ease-out'}`;
+  el.style.opacity = to;
+  clearTimeout(el._t);
+  if (to <= 0) el._t = setTimeout(() => { el.style.visibility = 'hidden'; }, dur * 1000 + 60);
+}
+function houseWanted() {
+  if (HOUSE.on || HOUSE.used || G.state !== 'play' || G.burst) return false;
+  const a = ALLIES[1];
+  return (a.rescued && a.state === 'fight' && G.playT >= Math.max(HOUSE_T0, (a.fightAt || 0) + 2.5)) || G.playT >= HOUSE_T1;
+}
+// 집(지붕 포함)이 지금 화면에 걸리는지
+function houseSeen(x, z) {
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (const y of [0, HH + ROOF_UP + 0.25]) {
+    toScreen(x + sx * (HW / 2 + 0.45), y, z + sz * (HD / 2 + EAVE), _sc);
+    if (_sc.z >= 1) return true;
+    x0 = Math.min(x0, _sc.x); x1 = Math.max(x1, _sc.x); y0 = Math.min(y0, _sc.y); y1 = Math.max(y1, _sc.y);
+  }
+  return x1 > -8 && x0 < VW + 8 && y1 > -8 && y0 < VH + 8;
+}
+function houseAppear() {
+  // 화면 위쪽 바깥(안개 속)에 세운다. 다가가면 안개를 뚫고 보이기 시작한다.
+  const x = ME.x + rand(-3, 3);
+  let z = ME.z - 18 - rand(0, 2);
+  for (let i = 0; i < 14 && houseSeen(x, z); i++) z -= 1.5;
+  housePlace(x, z);
+  HOUSE.at = G.playT;
+  // 들어갈 때 기다리지 않게 집 안 페이지를 미리 받아 둔다
+  try { const l = document.createElement('link'); l.rel = 'prefetch'; l.href = './gosiwon.html' + location.search; document.head.appendChild(l); } catch (e) { /* 무시 */ }
+}
+function houseUpdate(dt) {
+  const H = HOUSE;
+  if (houseWanted()) houseAppear();
+  if (!H.on) return;
+  if (H.enter) { enterTick(dt); return; }
+  // 문 앞에서 문 쪽으로 밀면 들어간다 (붙잡혀 있을 때, 하이파이브 중에는 안 됨)
+  if (G.state === 'play' && !H.used && G.ctrl && !ME.clingers.length && !ME.five) {
+    const front = H.z + HD / 2;
+    if (Math.abs(ME.x - H.dx) < 0.48 && ME.z < front + 0.62 && G.input.z < -0.35) startEnterHouse();
+  }
+}
+function houseAnimate(dt) {
+  const H = HOUSE;
+  if (!H.on) return;
+  H.door = approach(H.door, H.doorTo, H.doorTo > H.door ? 3.2 : 18, dt);
+  H.leaf.rotation.y = 1.72 * H.door;
+  // 문 밑 형광등 빛이 가끔 파르르 떨린다
+  H.glowT -= dt;
+  if (H.glowT <= 0) { H.glowT = rand(2.2, 5.5); H.flk = rand(0.14, 0.3); }
+  let lv = 1;
+  if (H.flk > 0) { H.flk -= dt; lv = Math.sin(H.flk * 64) > 0.2 ? 0.3 : 1; }
+  H.leak.material.color.setRGB(0.89 * lv, lv, 0.84 * lv);
+  H.leak.visible = H.door < 0.05;
+  // 집 뒤로 돌아가면 반투명하게 (주인공이 가려지지 않게)
+  const behind = G.state !== 'enter' && (houseBlocks(ME.x, 1.0, ME.z, 0.3, HH + ROOF_UP) || houseBlocks(ME.x, 1.7, ME.z, 0.3, HH + ROOF_UP));
+  // 카메라가 집 속으로 들어가면(붙잡혀 끝날 때 다가가는 카메라, 마지막 장면) 집을 아예 감춘다
+  const cp = camera.position;
+  const camIn = cp.y < HH + ROOF_UP + 0.5 && Math.abs(cp.x - H.x) < HW / 2 + 0.7 && Math.abs(cp.z - H.z) < HD / 2 + 0.7;
+  // 붙잡혀 끝나는 장면에서 집이 가리면 반투명 대신 아예 걷어 낸다 (원래 장면 그대로 보이게)
+  // (한 번 걷어 냈으면 장면이 끝날 때까지 다시 나타나지 않게)
+  const cine = G.state === 'over' || G.state === 'ending' || G.state === 'end';
+  H.cineHide = cine && (H.cineHide || behind);
+  const hide = camIn || H.cineHide;
+  H.fk = approach(H.fk, hide ? 0 : behind ? 0.2 : 1, hide ? 14 : 7, dt);
+  houseFade(H.fk > 0.996 ? 1 : H.fk);
+  H.group.visible = H.fk > 0.02;
+  H.pool.material.opacity = (0.62 + 0.3 * H.door) * H.fade * lv;
+}
+function startEnterHouse() {
+  const H = HOUSE;
+  G.state = 'enter'; G.ctrl = false; G.firing = false; G.freeze = true;
+  H.enter = { t: 0, x0: ME.x, z0: ME.z, fade: false, gone: false };
+  weaponUp(); weaponEl.classList.remove('down', 'pulse');
+  stickEl.hidden = true; stickId = null; G.stick.x = G.stick.z = 0;
+  $('hint').hidden = true; arrowEl.hidden = true; arrowShown = false; rescueNoticeEl.hidden = true;
+  hideToast(); clearItems();
+  musicStop(false);
+  CAM.zoomTo = 0.84;
+}
+function enterTick(dt) {
+  // 문 앞으로 다가서서 문을 마주 보면 화면이 어두워진다
+  const H = HOUSE, E = H.enter, front = H.z + HD / 2;
+  E.t += dt;
+  const k = easeInOutSine(E.t / 0.55);
+  const x = lerp(E.x0, H.dx, k), z = lerp(E.z0, front + 0.32, k);
+  ME.vx = (x - ME.x) / Math.max(dt, 1e-3); ME.vz = (z - ME.z) / Math.max(dt, 1e-3);
+  ME.x = x; ME.z = z;
+  ME.turnTo = E.t > 0.12 ? Math.PI : 0;
+  if (E.t > 0.42 && !E.fade) { E.fade = true; linkFade('#000', 1, 0.6); }
+  if (E.t > 1.1 && !E.gone) { E.gone = true; goInside(); }
+}
+function goInside() {
+  // 갇혀 있던 친구는 돌아온 뒤에 다시 나타난다
+  let allyNext = G.allyNext;
+  for (const a of ALLIES) if (a.state === 'trapped') allyNext = Math.min(allyNext, a.k);
+  const main = {
+    playT: G.playT, ringNext: G.ringNext, ringT: G.ringT, allyNext, allyT: G.allyT, allyKills: G.allyKills, helped: G.helped,
+    allies: ALLIES.filter((a) => a.rescued && (a.state === 'fight' || a.state === 'five' || a.state === 'freed')).map((a) => ({ k: a.k, kills: a.kills })),
+    face: faceBloodN, shirt: shirtBloodN,
+  };
+  const hash = linkWrite({ dir: 'in', kills: G.kills, main });
+  stopAllVoices(); musicStop(true);
+  G.paused = true;
+  location.replace('./gosiwon.html' + location.search + hash);
+}
+// 집에서 막 나온 장면: 문은 열린 채, 친구들은 문 앞을 막아 서 있고, 사람들은 집 앞에 모여 기다린다. 처음 누르면 이어진다.
+function placeWaitingCrowd(n) {
+  const pts = [];
+  for (let tries = 0; pts.length < n && tries < 4000; tries++) {
+    const th = rand(-1.85, 1.85), r = rand(4.2, 9.0);
+    const x = ME.x + Math.sin(th) * r * 1.12, z = ME.z + Math.cos(th) * r;
+    if (houseNear(x, z, 0.85)) continue;
+    if (pts.some((q) => (q.x - x) ** 2 + (q.z - z) ** 2 < 0.95 * 0.95)) continue;
+    pts.push({ x, z });
+  }
+  pts.sort((a, b) => Math.hypot(a.x - ME.x, a.z - ME.z) - Math.hypot(b.x - ME.x, b.z - ME.z));
+  for (const q of pts) {
+    const p = newPerson(q.x, q.z, { state: 'idle', idle: 0, kind: Math.random() < 0.2 ? 1 : 0, yaw: Math.atan2(ME.x - q.x, ME.z - q.z) + rand(-0.25, 0.25) });
+    if (!p) break;
+    p.look = 1; p.speakCD = rand(0.2, 1.4);
+    computePose(p, 0, p.pose);
+  }
+}
+function setupReturn(L) {
+  resetWorld();
+  hideAllOverlays();
+  document.body.classList.remove('intro-stage');
+  const m = L.main || {};
+  G.state = 'back'; G.ctrl = false; G.freeze = true;
+  G.playT = Math.max(0, +m.playT || 0);
+  G.ringNext = clamp(m.ringNext | 0, 0, RINGS.length); G.ringT = Number.isFinite(+m.ringT) ? +m.ringT : 134;
+  G.allyNext = clamp(m.allyNext | 0, 0, ALLIES.length); G.allyT = Math.max(+m.allyT || 0, G.playT + 12);
+  G.allyKills = m.allyKills | 0; G.helped = m.helped | 0;
+  G.kills = Math.max(0, L.kills | 0); killEl.textContent = G.kills;
+  G.movedOnce = G.firedOnce = G.stabbedOnce = true;
+  // 집은 등 뒤에, 문은 열린 채로
+  housePlace(-DOOR_OFF, -HD / 2 - 0.55);
+  HOUSE.used = true; HOUSE.door = HOUSE.doorTo = 1; HOUSE.leaf.rotation.y = 1.72;
+  // 친구들은 문 앞을 막아 서 있다
+  const seen = new Set();
+  const saved = (Array.isArray(m.allies) ? m.allies : []).filter((q) => q && Number.isInteger(q.k) && ALLIES[q.k] && !seen.has(q.k) && seen.add(q.k)).slice(0, 4);
+  const spots = [[1.15, 1.15], [-1.35, 1.2], [2.25, 0.55], [-2.4, 0.5]];
+  saved.forEach((q, i) => {
+    const a = ALLIES[q.k];
+    a.state = 'fight'; a.rescued = true; a.kills = q.kills | 0;
+    a.x = ME.x + spots[i][0]; a.z = ME.z + spots[i][1]; a.vx = a.vz = 0; a.walk = 0; a.spd = 0; a.ready = 1;
+    a.yaw = Math.atan2(spots[i][0] * 0.35, 1); a.cd = 0.25; a.tgtT = 0; a.helpCD = 0; a.fightAt = 0;
+    a.pose.fill(0); a.pose[P.HY] = M.HIP_Y;
+    setAllyFace(a.k, false);
+  });
+  GUARD.bear = Math.PI;
+  placeWaitingCrowd(18 + 4 * saved.length);
+  // 집 안에서 들고 나온 산탄총
+  sgEquip(clamp(L.shells | 0, 6, 30));
+  if (m.face) addMeFaceBlood(clamp(m.face | 0, 0, 34));
+  if (m.shirt) addShirtBlood(clamp(m.shirt | 0, 0, 60));
+  $('hud').hidden = false; weaponEl.hidden = false;
+  CAM.zoom = CAM.zoomTo = 1.12; setCam('game');
+  for (let i = 0; i < 4; i++) animate(0.3);
+  camUpdate(0.016);
+  backHintEl.textContent = IS_TOUCH ? '화면을 누르면 이어집니다' : '클릭하거나 키를 누르면 이어집니다';
+  backHintEl.hidden = false;
+  // 하얗게 나온 화면에서 서서히
+  linkFadeEl.style.transition = 'none'; linkFadeEl.style.background = '#fff'; linkFadeEl.style.opacity = 1; linkFadeEl.style.visibility = 'visible';
+  document.documentElement.classList.remove('linkout');
+  requestAnimationFrame(() => requestAnimationFrame(() => linkFade('#fff', 0, 0.9)));
+}
+function resumeFromHouse() {
+  if (G.state !== 'back') return;
+  audioInit();
+  G.state = 'play'; G.ctrl = true; G.freeze = false;
+  backHintEl.hidden = true;
+  CAM.zoomTo = 1; CAM.shake = Math.max(CAM.shake, 0.1);
+  HOUSE.doorTo = 0;
+  for (const p of live) if (p.state === 'idle') { p.noticeT = G.playT + 0.25 + Math.hypot(p.x - ME.x, p.z - ME.z) * 0.06; p.look = 1; }
+  const fl = $('flash'); fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go');
+  // 소리: 휴대폰은 손을 뗄 때 켜지기도 하므로, 켜지는 순간에 맞춰 문 소리와 음악을 낸다
+  let kicked = false;
+  const kick = () => { if (kicked || !ok()) return; kicked = true; const t = ac.currentTime + 0.03; sfxDoorSlamOut(); sfxImpact(t); musicStart(t, 32); };
+  if (ok()) kick();
+  else if (ac) {
+    const onState = () => { if (!ok()) return; ac.removeEventListener('statechange', onState); if (G.state === 'play') kick(); };
+    ac.addEventListener('statechange', onState);
+    try { const pr = ac.resume(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) { /* 무시 */ }
+  }
+}
+window.addEventListener('pointerdown', (e) => {
+  if (G.state !== 'back') return;
+  if (e.target && e.target.closest && e.target.closest('#mute, #arcade, #toast')) return;
+  resumeFromHouse();
+}, true);
+window.addEventListener('keydown', (e) => {
+  if (G.state !== 'back' || e.repeat) return;
+  if (/^(KeyM|Tab|Shift|Control|Alt|Meta|Escape|F\d)/.test(e.code)) return;
+  resumeFromHouse();
+}, true);
+
 // 다 쓰러지고 잠깐 조용해지면 마지막 장면으로
 function checkEnd() {
   if (G.state !== 'over' || !G.burst || G.burst.phase !== 'done') return;
@@ -5297,10 +6019,11 @@ function simulate(dt) {
   for (const p of live) if (p.lookDelay !== undefined && p.state === 'idle') { p.lookDelay -= dt; if (p.lookDelay <= 0) { p.look = approach(p.look, 1, 4, dt); } }
   if (G.state === 'play') { G.playT += dt; spawnUpdate(dt); allySpawnUpdate(); }
   meSim(dt);
+  houseUpdate(dt);
   updateItems(dt);
   crowdSim(dt);
-  allySim(dt);
-  if (G.state === 'play') combatSim(dt);
+  if (G.state !== 'back' && G.state !== 'enter') allySim(dt);
+  if (G.state === 'play') { combatSim(dt); sgTick(dt); }
   dangerSim(dt);
   burstSim(dt);
   // 무기 버튼 모양
@@ -5316,6 +6039,8 @@ function animate(dt) {
   flushCrowd();
   meAnimate(dt);
   alliesAnimate(dt);
+  houseAnimate(dt);
+  sgAnimate(dt);
   fxUpdate(dt);
   dangerFx(dt);
 }
@@ -5363,8 +6088,8 @@ function ready() {
 }
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { makeCareBookAtlas(careBookTex); makeCarePosterAtlas(carePosterTex); });
 (document.fonts && document.fonts.ready ? Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 2500))]) : Promise.resolve()).then(ready);
-// 첫 화면: 포스터
-posterSetup();
+// 첫 화면: 포스터 (집에서 막 나온 참이면 그 자리에서 이어서)
+if (RETURN) setupReturn(RETURN); else posterSetup();
 camUpdate(0.016);
 requestAnimationFrame(frame);
 
@@ -5389,6 +6114,7 @@ window.__fh = {
   meBadgeCanvas: () => MR.torso.children.find((m) => Array.isArray(m.material) && m.material[4]?.map)?.material[4].map.image,
   carePosterCanvas: () => carePosterTex.image,
   startIntro, drop, startEnding, restart,
+  house: HOUSE, sg: SG, houseHide, houseAppear, startEnterHouse, setupReturn, resumeFromHouse, sgEquip, sgDiscard, linkRead,
   spawn(n, kind = 0) { for (let i = 0; i < n; i++) spawnOne(kind); },
   near(n, r = 2.5) { for (let i = 0; i < n; i++) { const a = rand(0, TAU); const p = newPerson(ME.x + Math.sin(a) * r, ME.z + Math.cos(a) * r, { state: 'chase', yaw: a + Math.PI }); if (p) p.speakCD = rand(0, 1); } },
 };
