@@ -247,6 +247,8 @@ body { font-family: var(--font-sans); word-break: keep-all; overflow-wrap: anywh
 /* 갇힌 동료를 가리키는 화살표 */
 #arrow { position: absolute; left: 0; top: 0; width: 44px; height: 44px; margin: -22px 0 0 -22px; will-change: transform; filter: drop-shadow(0 3px 0 rgba(31, 26, 36, 0.28)); }
 #arrow svg { width: 100%; height: 100%; display: block; }
+#arrow.sauna svg path:first-child { fill: #ef9564; }
+#arrow.sauna::after { content: "♨"; position: absolute; inset: 12px 0 auto; color: #59271e; text-align: center; font: bold 16px/1 sans-serif; transform: rotate(var(--upright)); }
 #arrow.urgent svg path:first-child { fill: #e72036; }
 #arrow.urgent svg path:last-child { stroke: #ffdce0; }
 #rescueNotice { position: absolute; top: calc(70px + var(--safe-t)); left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); padding: 9px 16px; border: 2px solid #e72036; border-radius: 7px; background: rgba(255,255,255,.96); color: #bb1026; font-weight: 900; font-size: 16px; box-shadow: 0 3px 0 rgba(31,26,36,.12); }
@@ -270,7 +272,9 @@ body { font-family: var(--font-sans); word-break: keep-all; overflow-wrap: anywh
 #weapon .sg { display: none; }
 #weapon.sgon .gun { display: none; }
 #weapon.sgon .sg { display: block; }
-#weapon.knife .sg { display: none; }
+#weapon .rk, #weapon.rkon .sg, #weapon.rkon .gun, #weapon.knife .sg { display: none; }
+#weapon.rkon .rk { display: block; }
+#weapon.knife .rk { display: none; }
 #sgN { position: absolute; left: -7px; top: -7px; min-width: 32px; height: 32px; padding: 0 8px; border-radius: 16px; background: #8a4f2a; color: #fff; border: 2.5px solid var(--ink); display: grid; place-items: center; font: 900 16px/1 var(--font-sans); font-variant-numeric: tabular-nums; box-shadow: 0 3px 0 var(--ink); }
 #sgN.pop { animation: sgpop .22s ease-out; }
 @keyframes sgpop { 0% { transform: scale(1.35); background: var(--blood); } 100% { transform: scale(1); } }
@@ -331,6 +335,7 @@ body { font-family: var(--font-sans); word-break: keep-all; overflow-wrap: anywh
     <svg class="gun" viewBox="0 0 64 64" aria-hidden="true"><path d="M9 22h40l3-3h5v9h-4v4H32l-2 3h-6l-3 13a3 3 0 0 1-3 2.4h-6a2 2 0 0 1-2-2.5l4-14.4L9 30z" fill="#1f1a24"/><path d="M30 35h6l-1.6 6.2a2 2 0 0 1-2 1.5H29" fill="none" stroke="#1f1a24" stroke-width="3" stroke-linejoin="round"/><rect x="12" y="24.5" width="34" height="3" rx="1.5" fill="#fff" opacity=".35"/></svg>
     <svg class="knife" viewBox="0 0 64 64" aria-hidden="true"><path d="M8 40c10-3 26-10 40-24l6-4-2 7C42 33 28 41 14 44z" fill="#fff"/><path d="M14 44l-4 2 4 9 5-2-1.5-7z" fill="#1f1a24" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/><path d="M12 41l8-3" stroke="#d3122c" stroke-width="1.6"/></svg>
     <svg class="sg" viewBox="0 0 64 64" aria-hidden="true"><path d="M4 25h40l2-2h12v6H40l-4 2h-9l-2 2H15l-6 9H3l4-11z" fill="#1f1a24"/><rect x="27" y="29" width="13" height="5" rx="1.5" fill="#8a4f2a"/><rect x="8" y="26.5" width="34" height="2.4" rx="1.2" fill="#fff" opacity=".35"/></svg>
+      <svg class="rk" viewBox="0 0 64 64" aria-hidden="true"><rect x="12" y="27" width="36" height="7" rx="2" fill="#56653a" stroke="#1f1a24" stroke-width="2.5"/><path d="M48 25.5h5l6 5-6 5h-5z" fill="#77843f" stroke="#1f1a24" stroke-width="2.5" stroke-linejoin="round"/><path d="M5 26l7 1.5v6L5 35z" fill="#3c4728" stroke="#1f1a24" stroke-width="2.5" stroke-linejoin="round"/><rect x="24" y="26" width="10" height="9" rx="1.5" fill="#8a4f2a"/><path d="M20 34v7M38 34v6" stroke="#1f1a24" stroke-width="4" stroke-linecap="round"/></svg>
     <b id="sgN" hidden>0</b>
     <span class="keycap">SPACE</span>
   </button>
@@ -421,6 +426,7 @@ body { font-family: var(--font-sans); word-break: keep-all; overflow-wrap: anywh
   setTimeout(function () { if (!window.__fh) { var e = document.getElementById('err'); e.textContent = '게임을 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침해 주세요.'; e.hidden = false; } }, 12000);
 </script>
 <script type="module">
+import { rocketWarheadGeo, buildRocketModel } from './rocket-model.js';
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
 
 // ───────────────────────── 기본 도구 ─────────────────────────
@@ -2617,6 +2623,23 @@ function makeOutShotgun() {
   holder.add(g); g.visible = false;
   SG.model = g; SG.pump = pump; SG.pumpZ = pump.position.z;
 }
+const streetRocket = { rounds: 0, cooldown: 0, model: null, projectile: null, target: new THREE.Vector3(), flash: null, flashT: 0 };
+function equipStreetRockets(rounds) {
+  const r = streetRocket;
+  r.rounds = clamp(rounds | 0, 0, 99);
+  if (r.rounds && !r.model) {
+    const head = rocketWarheadGeo(THREE, mergeGeos);
+    r.model = buildRocketModel(THREE, toon, OUT_MAT, head);
+    r.model.rotation.y = Math.PI; r.model.scale.setScalar(1.18);
+    SG.model.parent.add(r.model);
+    r.projectile = new THREE.Mesh(head, toon('#77843f'));
+    r.projectile.visible = false; scene.add(r.projectile);
+    r.flash = new THREE.Sprite(new THREE.SpriteMaterial({ map: flashTex, color: '#ffb143', transparent: true, depthWrite: false }));
+    r.flash.visible = false; scene.add(r.flash);
+  }
+  if (r.model) r.model.visible = r.rounds > 0;
+  weaponEl.classList.toggle('rkon', r.rounds > 0); sgBadge(false);
+}
 function sgDropAt(x, z, y0) {
   // 다 쓴 총은 손에서 떨어져 바닥에 그대로 남는다
   const { g } = makeOutShotgun();
@@ -3206,6 +3229,62 @@ const HOUSE = {
 };
 HOUSE.group.visible = false;
 scene.add(HOUSE.group);
+const SAUNA = {
+  on: false, used: false, due: Infinity, x: 0, z: 0, dx: 0, fade: 1,
+  group: new THREE.Group(), mats: [], arrow: { x: 0, z: 0, hy: 2.1, state: 'house' },
+};
+SAUNA.group.visible = false;
+scene.add(SAUNA.group);
+function buildSaunaFront() {
+  const g = SAUNA.group;
+  function box(w, h, d, x, y, z, color) {
+    const mat = toon(color);
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    mesh.position.set(x, y, z); mesh.castShadow = true; g.add(mesh); SAUNA.mats.push(mat);
+  }
+  const front = HD / 2;
+  box(HW, HH, HD, 0, HH / 2, 0, '#d0b8a0');
+  box(HW + 0.14, 0.22, HD + 0.14, 0, HH + 0.04, 0, '#713e35');
+  box(HW, 0.36, 0.09, 0, 0.18, front, '#8e5849');
+  box(1.38, 2.08, 0.09, DOOR_OFF, 1.04, front + 0.05, '#552e24');
+  for (const side of [-1, 1]) {
+    box(0.60, 1.83, 0.035, DOOR_OFF + side * 0.32, 1.03, front + 0.11, '#e7bd8b');
+    box(0.035, 0.37, 0.06, DOOR_OFF + side * 0.12, 1.08, front + 0.15, '#68432c');
+  }
+  box(2.35, 1.07, 0.10, 1.33, 1.25, front + 0.03, '#744e47');
+  box(2.17, 0.91, 0.05, 1.33, 1.25, front + 0.1, '#f1ba7b');
+  box(0.065, 1.02, 0.07, 1.33, 1.25, front + 0.14, '#744e47');
+  box(1.7, 0.07, 0.58, DOOR_OFF, 0.035, front + 0.28, '#b49a87');
+  const c = cnv(768, 160), ctx = c.getContext('2d');
+  ctx.fillStyle = '#792f2b'; ctx.fillRect(0, 0, 768, 160);
+  ctx.strokeStyle = '#e9b77a'; ctx.lineWidth = 5; ctx.strokeRect(8, 8, 752, 144);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff2d5';
+  ctx.font = '900 96px "Noto Sans KR", sans-serif'; ctx.fillText('♨  찜질방', 370, 84);
+  const signMat = new THREE.MeshBasicMaterial({ map: texOf(c) });
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(4.9, 1.04), signMat);
+  sign.position.set(0, HH + 0.09, front + 0.16); sign.rotation.x = -0.45;
+  g.add(sign); SAUNA.mats.push(signMat);
+}
+function placeSauna(x, z) {
+  if (!SAUNA.group.children.length) buildSaunaFront();
+  SAUNA.x = x; SAUNA.z = z; SAUNA.dx = x + DOOR_OFF;
+  Object.assign(SAUNA.arrow, { x: SAUNA.dx, z: z + HD / 2 + 0.2 });
+  SAUNA.on = true; SAUNA.group.visible = true; SAUNA.group.position.set(x, 0, z);
+  for (const p of live) houseCollide(p, 0.4);
+}
+function animateSauna(dt) {
+  if (!SAUNA.on) return;
+  const blocked = houseBlocks(ME.x, 1.2, ME.z, 0.3, HH + 0.55, SAUNA);
+  const target = BD.roomT >= 0 ? 0 : blocked ? 0.2 : 1;
+  const next = approach(SAUNA.fade, target, 9, dt);
+  SAUNA.fade = Math.abs(next - target) < 0.005 ? target : next;
+  SAUNA.group.visible = SAUNA.fade > 0.02;
+  for (const m of SAUNA.mats) {
+    const transparent = SAUNA.fade < 1;
+    if (m.transparent !== transparent) { m.transparent = transparent; m.depthWrite = !transparent; m.needsUpdate = true; }
+    m.opacity = SAUNA.fade;
+  }
+}
 const HOUSE_OUT = outlineMat();
 (() => {
   const H = HOUSE, grp = H.group;
@@ -3326,12 +3405,15 @@ for (const m of HOUSE.mats) { if (m.transparent) { m.userData.alwaysTr = true; m
 // 동그라미(사람)를 집 벽 밖으로 밀어냄. 밀렸으면 벽의 바깥 방향을 돌려준다
 const _hn = { x: 0, z: 0 };
 function houseCollide(o, r) {
-  const H = HOUSE;
+  return collideBuilding(o, r, HOUSE) || (SAUNA.on && collideBuilding(o, r, SAUNA));
+}
+function collideBuilding(o, r, H) {
   if (!H.on) return null;
   const x0 = H.x - HW / 2 - 0.05, x1 = H.x + HW / 2 + 0.05, z0 = H.z - HD / 2 - 0.05, z1 = H.z + HD / 2 + 0.05;
   const cx = clamp(o.x, x0, x1), cz = clamp(o.z, z0, z1);
   let dx = o.x - cx, dz = o.z - cz, d2 = dx * dx + dz * dz;
   if (d2 >= r * r) return null;
+  _hn.building = H;
   if (d2 < 1e-8) {
     const l = o.x - x0, rr = x1 - o.x, t = o.z - z0, b = z1 - o.z, m = Math.min(l, rr, t, b);
     if (m === l) { o.x = x0 - r; _hn.x = -1; _hn.z = 0; } else if (m === rr) { o.x = x1 + r; _hn.x = 1; _hn.z = 0; } else if (m === t) { o.z = z0 - r; _hn.x = 0; _hn.z = -1; } else { o.z = z1 + r; _hn.x = 0; _hn.z = 1; }
@@ -3345,7 +3427,10 @@ function houseCollide(o, r) {
 
 // 총알은 집 벽을 뚫지 못한다: 벽까지의 거리 (안 맞으면 Infinity)
 function houseRayT(ox, oz, dx, dz) {
-  const H = HOUSE;
+  const t = buildingRayT(ox, oz, dx, dz, HOUSE);
+  return SAUNA.on ? Math.min(t, buildingRayT(ox, oz, dx, dz, SAUNA)) : t;
+}
+function buildingRayT(ox, oz, dx, dz, H) {
   if (!H.on) return Infinity;
   let t0 = -Infinity, t1 = Infinity;
   for (const [o, d, a, b] of [[ox, dx, H.x - HW / 2, H.x + HW / 2], [oz, dz, H.z - HD / 2, H.z + HD / 2]]) {
@@ -3356,8 +3441,7 @@ function houseRayT(ox, oz, dx, dz) {
   return t1 >= t0 && t0 > 0 ? t0 : Infinity;
 }
 // 카메라에서 이 점까지 사이에 집이 끼어 있는지 (pad: 집 상자를 얼마나 넓혀 볼지, top: 지붕 높이로 칠 높이)
-function houseBlocks(x, y, z, pad, top) {
-  const H = HOUSE;
+function houseBlocks(x, y, z, pad, top, H = HOUSE) {
   const ox = camera.position.x, oy = camera.position.y, oz = camera.position.z;
   let t0 = 0, t1 = 1;
   for (const [o, d, a, b] of [[ox, x - ox, H.x - HW / 2 - pad, H.x + HW / 2 + pad], [oy, y - oy, 0, top], [oz, z - oz, H.z - HD / 2 - pad, H.z + HD / 2 + pad]]) {
@@ -3371,9 +3455,11 @@ function houseBlocks(x, y, z, pad, top) {
 // 집 뒤 사람의 말풍선이 지붕 위에 뜨지 않게 (집이 반투명해졌을 때는 그대로 보여 줌)
 function houseHides(x, y, z) {
   const H = HOUSE;
-  return H.on && H.group.visible && H.fade >= 0.6 && houseBlocks(x, y, z, -0.1, HH + ROOF_UP * 0.6);
+  return (H.on && H.group.visible && H.fade >= 0.6 && houseBlocks(x, y, z, -0.1, HH + ROOF_UP * 0.6)) ||
+    (SAUNA.on && SAUNA.fade >= 0.6 && houseBlocks(x, y, z, -0.1, HH, SAUNA));
 }
-function houseNear(x, z, m) { const H = HOUSE; return H.on && Math.abs(x - H.x) < HW / 2 + m && Math.abs(z - H.z) < HD / 2 + m; }
+function nearBuilding(H, x, z, m) { return H.on && Math.abs(x - H.x) < HW / 2 + m && Math.abs(z - H.z) < HD / 2 + m; }
+function houseNear(x, z, m) { return nearBuilding(HOUSE, x, z, m) || nearBuilding(SAUNA, x, z, m); }
 // 벽에 막힌 사람은 막힌 면을 따라 쫓는 사람이 있는 쪽 모서리로 돌아간다 (모서리에 닿으면 다시 곧장)
 function houseSlide(p, hx, hz) {
   const n = houseCollide(p, 0.3);
@@ -3381,7 +3467,7 @@ function houseSlide(p, hx, hz) {
   const vn = p.vx * n.x + p.vz * n.z;
   if (vn < 0) { p.vx -= vn * n.x; p.vz -= vn * n.z; }
   if (!p.wallC || G.t - p.wallT > 1.0) {
-    const H = HOUSE, m = 0.75, x0 = H.x - HW / 2 - m, x1 = H.x + HW / 2 + m, z0 = H.z - HD / 2 - m, z1 = H.z + HD / 2 + m;
+    const H = n.building, m = 0.75, x0 = H.x - HW / 2 - m, x1 = H.x + HW / 2 + m, z0 = H.z - HD / 2 - m, z1 = H.z + HD / 2 + m;
     if (Math.abs(n.z) >= Math.abs(n.x)) {   // 앞뒤 면: 좌우 모서리 중 쫓는 사람 쪽
       const side = Math.abs(hx - H.x) > 0.5 ? hx - H.x : p.x - H.x;
       p.wallC = [side < 0 ? x0 : x1, n.z < 0 ? z0 : z1];
@@ -4151,10 +4237,14 @@ function meAnimate(dt) {
   for (const h of [0, 1]) {
     const stabbing = ME.stab && ME.stab.hand === h;
     const fiving = ME.five && ME.five.h === h;
-    const sg = h === 1 && SG.on;
+    const sg = h === 1 && (SG.on || streetRocket.rounds > 0);
     KNIVES[h].visible = !fiving && (stabbing || (ME.clingers.length > 0 && ((h === 0 && ME.clingers.some((p) => SLOTS[p.slot].x >= 0)) || (h === 1 && ME.clingers.some((p) => SLOTS[p.slot].x < 0)))));
     GUNS[h].visible = !fiving && !KNIVES[h].visible && !sg;
-    if (h === 1) SG.model.visible = SG.on && !fiving && !KNIVES[1].visible;
+    if (h === 1) {
+      const available = !fiving && !KNIVES[1].visible;
+      SG.model.visible = SG.on && !streetRocket.rounds && available;
+      if (streetRocket.model) streetRocket.model.visible = streetRocket.rounds > 0 && available;
+    }
     if (fiving) {
       const f = ME.five;
       aimArm(h, f.pt, f.blend, 0, -0.25);
@@ -4406,12 +4496,15 @@ function shoot(forced) {
   if (tgt) { ax = tgt.x; ay = 0.86; az = tgt.z; }
   else { const v = Math.hypot(ME.vx, ME.vz); const dx = v > 0.3 ? ME.vx / v : 0, dz = v > 0.3 ? ME.vz / v : 1; ax = ME.x + dx * 8; ay = 0.9; az = ME.z + dz * 8; }
   // 산탄총은 겨눌 사람이 있을 때만 (허공에 버리지 않게)
-  if (SG.on && tgt && !forced && SG.cd <= 0 && SG.dropT < 0 && !(ME.five && ME.five.h === 1)) { shootShotgunOut(ax, ay, az); return; }
+  if (streetRocket.rounds && tgt && !forced && streetRocket.cooldown <= 0 && !(ME.five && ME.five.h === 1)) {
+    shootStreetRocket(ax, az); return;
+  }
+  if (!streetRocket.rounds && SG.on && tgt && !forced && SG.cd <= 0 && SG.dropT < 0 && !(ME.five && ME.five.h === 1)) { shootShotgunOut(ax, ay, az); return; }
   const relx = ax - ME.x;
   let h = relx >= 0 ? 0 : 1;
   if (G.t - ME.lastShot[h] < 0.1 && G.t - ME.lastShot[1 - h] > 0.12) h = 1 - h;
   if (ME.five && ME.five.h === h) h = 1 - h;   // 하이파이브 중인 손은 쉰다
-  if (SG.on) { if (ME.five && ME.five.h === 0) return; h = 0; }   // 오른손엔 산탄총
+  if (SG.on || streetRocket.rounds) { if (ME.five && ME.five.h === 0) return; h = 0; }   // 오른손엔 산탄총
   ME.lastShot[h] = G.t; G.lastShotT = G.t;
   ME.aim[h] = 1; ME.aimPt[h].set(ax, ay, az); ME.recoil[h] = 1;
   if (!G.firedOnce) { G.firedOnce = true; $('weapon').classList.remove('pulse'); }
@@ -4491,9 +4584,9 @@ function stabHit(c, hand) {
 const SG_CD = 0.46, SG_PELLETS = 9, SG_SPREAD = 0.31, SG_RANGE = 8.2;   // 권총 한 발 사이에 한 방씩: 쾅-탕-쾅-탕
 const sgNEl = $('sgN');
 function sgBadge(pop) {
-  sgNEl.hidden = !SG.on;
-  if (!SG.on) return;
-  sgNEl.textContent = SG.shells;
+  sgNEl.hidden = !SG.on && !streetRocket.rounds;
+  if (sgNEl.hidden) return;
+  sgNEl.textContent = streetRocket.rounds || SG.shells;
   if (pop) { sgNEl.classList.remove('pop'); void sgNEl.offsetWidth; sgNEl.classList.add('pop'); }
 }
 function sgEquip(n) {
@@ -4531,6 +4624,45 @@ function shootShotgunOut(ax, ay, az) {
   CAM.shake = Math.max(CAM.shake, 0.09);
   sgBadge(true);
 }
+function shootStreetRocket(x, z) {
+  const r = streetRocket;
+  r.model.getWorldPosition(_v2);
+  const p = r.projectile;
+  p.position.copy(_v2); p.visible = true;
+  r.target.set(x, 0.85, z);
+  const dx = x - ME.x, dz = z - ME.z, dist = Math.hypot(dx, dz) || 1;
+  const end = Math.min(dist, houseRayT(ME.x, ME.z, dx / dist, dz / dist));
+  r.target.x = ME.x + dx * end / dist; r.target.z = ME.z + dz * end / dist;
+  p.rotation.y = Math.atan2(-dx, -dz);
+  ME.lastShot[1] = G.lastShotT = G.t; ME.aim[1] = 1; ME.aimPt[1].copy(r.target); ME.recoil[1] = 1;
+  r.rounds--; r.cooldown = 1.5;
+  weaponEl.classList.toggle('rkon', r.rounds > 0); sgBadge(true);
+  if (ok()) sfxShotgunOut(screenPan(ME.x, ME.z));
+}
+function streetRocketTick(dt) {
+  const r = streetRocket;
+  if (!r.projectile) return;
+  r.cooldown = Math.max(0, r.cooldown - dt);
+  if (r.flashT > 0) {
+    r.flashT = Math.max(0, r.flashT - dt);
+    const k = r.flashT / 0.28;
+    r.flash.scale.setScalar(4.5 - k * 2.2); r.flash.material.opacity = k; r.flash.visible = k > 0;
+  }
+  const p = r.projectile;
+  if (!p.visible) return;
+  const distance = p.position.distanceTo(r.target);
+  if (distance > 22 * dt) { p.position.lerp(r.target, 22 * dt / distance); return; }
+  p.visible = false;
+  const { x, z } = r.target;
+  r.flash.position.copy(r.target); r.flash.visible = true; r.flashT = 0.28;
+  r.flash.scale.setScalar(2.3); r.flash.material.opacity = 1;
+  impactPulse(x, z); CAM.shake = Math.max(CAM.shake, 0.16);
+  if (ok()) sfxImpact(ac.currentTime + 0.01);
+  for (const q of live) {
+    const dx = q.x - x, dz = q.z - z, d = Math.hypot(dx, dz);
+    if (d <= 3.2 && d < houseRayT(x, z, dx / (d || 1), dz / (d || 1))) poweredKill(q, dx / (d || 1), dz / (d || 1), true);
+  }
+}
 function sgTick(dt) {
   if (!SG.on) return;
   SG.cd -= dt;
@@ -4555,6 +4687,10 @@ function sgDiscard(quiet) {
   weaponEl.classList.remove('sgon'); sgBadge(false);
 }
 function sgReset() {
+  const r = streetRocket;
+  r.rounds = r.cooldown = r.flashT = 0;
+  if (r.model) r.model.visible = r.projectile.visible = r.flash.visible = false;
+  weaponEl.classList.remove('rkon');
   SG.on = false; SG.shells = 0; SG.cd = 0; SG.dropT = -1; SG.ejectT = -1; SG.pumpT = 9; SG.flashT = 0;
   SG.model.visible = false; SG.flash.visible = false;
   for (const g of SG.dropped) {
@@ -5364,6 +5500,10 @@ function updateArrow() {
   let a = urgent ? (pinned.includes(arrowTarget) ? arrowTarget : pinned.reduce((best, p) => !best || Math.hypot(p.x - ME.x, p.z - ME.z) < Math.hypot(best.x - ME.x, best.z - ME.z) ? p : best, null)) : G.trapped;
   let want = !!a && (urgent || a.state === 'trapped') && G.state === 'play';
   if (!want && G.state === 'play' && HOUSE.on && !HOUSE.used) { a = HOUSE.arrow; want = true; }
+  if (G.state === 'play' && SAUNA.on && !SAUNA.used && !urgent && (!want || G.playT < SAUNA.due + 5)) {
+    a = SAUNA.arrow; want = true;
+  }
+  arrowEl.classList.toggle('sauna', want && a === SAUNA.arrow);
   rescueNoticeEl.hidden = !urgent;
   arrowEl.classList.toggle('urgent', urgent);
   if (!want) { arrowTarget = null; if (arrowShown) { arrowEl.hidden = true; arrowShown = false; } return; }
@@ -5388,6 +5528,7 @@ function updateArrow() {
     x = clamp(ox + dx * (t - 6 - bob), m, VW - m); y = clamp(oy + dy * (t - 6 - bob), top, bottom);
     ang = Math.atan2(dx, -dy);
   }
+  if (a === SAUNA.arrow) arrowEl.style.setProperty('--upright', (-ang).toFixed(3) + 'rad');
   arrowEl.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) rotate(${ang.toFixed(3)}rad)`;
 }
 
@@ -7393,6 +7534,7 @@ function resetWorld() {
   G.playT = 0; G.spawnAcc = 0; G.groupAcc = 0; G.ringNext = 0; G.spawnDone = false; G.firing = false; G.ctrl = false;
   G.stick.x = G.stick.z = 0;
   weaponEl.classList.remove('knife', 'pulse', 'down');
+  SAUNA.on = SAUNA.used = SAUNA.group.visible = false; SAUNA.due = Infinity; SAUNA.fade = 1;
   houseHide(); sgReset(); ME.turn = ME.turnTo = 0;
   backHintEl.hidden = true;
   bdayReset();
@@ -7576,6 +7718,8 @@ if (!IS_TOUCH) document.body.classList.add('desk');
 // 둘째 친구와 하이파이브하고 조금 뒤(못 구했어도 80초에는) 앞쪽 안개 속에 집이 선다. 화살표가 말없이 가리키고, 들어갈지는 마음대로.
 // 문 앞에서 문 쪽으로 밀면 화면이 어두워지고 gosiwon.html(1인칭 고시원)로 넘어간다. 나오면 이 페이지로 돌아와 그 자리에서 이어진다.
 const HOUSE_T0 = 48, HOUSE_T1 = 80;
+const SAUNA_DELAY = 12; // 고시원을 나와 다시 조작하기 시작한 뒤 야외 시간
+
 const linkFadeEl = $('linkFade'), backHintEl = $('backHint');
 function linkFade(color, to, dur) {
   const el = linkFadeEl;
@@ -7614,12 +7758,21 @@ function houseAppear() {
 function houseUpdate(dt) {
   const H = HOUSE;
   if (houseWanted()) houseAppear();
+  if (G.state === 'play' && H.used && !SAUNA.on && G.playT >= SAUNA.due) {
+    // 고시원이 등 뒤에 있어도, 어느 방향으로 움직였어도 두 입구가 겹치지 않게 한다.
+    const x = ME.x + (ME.x >= H.x ? 8 : -8);
+    let z = ME.z - 17;
+    if (nearBuilding(H, x, z, Math.max(HW, HD))) z = H.z - HD - 8;
+    placeSauna(x, z);
+    const link = document.createElement('link'); link.rel = 'prefetch'; link.href = './jjimjil.html' + location.search; document.head.appendChild(link);
+  }
   if (!H.on) return;
   if (H.enter) { enterTick(dt); return; }
   // 문 앞에서 문 쪽으로 밀면 들어간다 (붙잡혀 있을 때, 하이파이브 중에는 안 됨)
-  if (G.state === 'play' && !H.used && G.ctrl && !ME.clingers.length && !ME.five) {
-    const front = H.z + HD / 2;
-    if (Math.abs(ME.x - H.dx) < 0.48 && ME.z < front + 0.62 && G.input.z < -0.35) startEnterHouse();
+  if (G.state === 'play' && G.ctrl && !ME.clingers.length && !ME.five && G.input.z < -0.35) {
+    const entrance = H.used ? SAUNA : H;
+    const distance = ME.z - (entrance.z + HD / 2);
+    if (entrance.on && !entrance.used && distance >= 0 && distance < 0.62 && Math.abs(ME.x - entrance.dx) < 0.48) startEnterHouse(entrance);
   }
 }
 function houseAnimate(dt) {
@@ -7649,10 +7802,10 @@ function houseAnimate(dt) {
   H.group.visible = H.fk > 0.02;
   H.pool.material.opacity = (0.62 + 0.3 * H.door) * H.fade * lv;
 }
-function startEnterHouse() {
+function startEnterHouse(entrance = HOUSE) {
   const H = HOUSE;
   G.state = 'enter'; G.ctrl = false; G.firing = false; G.freeze = true;
-  H.enter = { t: 0, x0: ME.x, z0: ME.z, fade: false, gone: false };
+  H.enter = { entrance, t: 0, x0: ME.x, z0: ME.z, fade: false, gone: false };
   weaponUp(); weaponEl.classList.remove('down', 'pulse');
   stickEl.hidden = true; stickId = null; G.stick.x = G.stick.z = 0;
   $('hint').hidden = true; arrowEl.hidden = true; arrowShown = false; rescueNoticeEl.hidden = true;
@@ -7662,7 +7815,7 @@ function startEnterHouse() {
 }
 function enterTick(dt) {
   // 문 앞으로 다가서서 문을 마주 보면 화면이 어두워진다
-  const H = HOUSE, E = H.enter, front = H.z + HD / 2;
+  const E = HOUSE.enter, H = E.entrance, front = H.z + HD / 2;
   E.t += dt;
   const k = easeInOutSine(E.t / 0.55);
   const x = lerp(E.x0, H.dx, k), z = lerp(E.z0, front + 0.32, k);
@@ -7681,10 +7834,16 @@ function goInside() {
     allies: ALLIES.filter((a) => a.rescued && (a.state === 'fight' || a.state === 'five' || a.state === 'freed')).map((a) => ({ k: a.k, kills: a.kills })),
     face: faceBloodN, shirt: shirtBloodN, bday: { left: BD.left, ready: BD.ready },
   };
-  const hash = linkWrite({ dir: 'in', kills: G.kills, main });
+  const sauna = HOUSE.enter.entrance === SAUNA;
+  if (sauna) {
+    main.houseOffset = { x: HOUSE.x - SAUNA.x, z: HOUSE.z - SAUNA.z };
+    main.shells = SG.on ? SG.shells : 0;
+  }
+  const to = sauna ? 'jjimjil' : 'gosiwon';
+  const hash = linkWrite({ dir: 'in', to, kills: G.kills, main });
   stopAllVoices(); musicStop(true);
   G.paused = true;
-  location.replace('./gosiwon.html' + location.search + hash);
+  location.replace('./' + to + '.html' + location.search + hash);
 }
 // 집에서 막 나온 장면: 문은 열린 채, 친구들은 문 앞을 막아 서 있고, 사람들은 집 앞에 모여 기다린다. 처음 누르면 이어진다.
 function placeWaitingCrowd(n) {
@@ -7717,7 +7876,16 @@ function setupReturn(L) {
   G.kills = Math.max(0, L.kills | 0); killEl.textContent = G.kills;
   G.movedOnce = G.firedOnce = G.stabbedOnce = true;
   // 집은 등 뒤에, 문은 열린 채로
-  housePlace(-DOOR_OFF, -HD / 2 - 0.55);
+  const fromSauna = L.from === 'jjimjil';
+  const doorX = -DOOR_OFF, doorZ = -HD / 2 - 0.55;
+  if (fromSauna) {
+    const offset = m.houseOffset;
+    housePlace(doorX + (Number.isFinite(offset?.x) ? offset.x : -9), doorZ + (Number.isFinite(offset?.z) ? offset.z : 18));
+    placeSauna(doorX, doorZ); SAUNA.used = true;
+  } else {
+    housePlace(doorX, doorZ);
+    SAUNA.due = G.playT + SAUNA_DELAY;
+  }
   HOUSE.used = true; HOUSE.door = HOUSE.doorTo = 1; HOUSE.leaf.rotation.y = 1.72;
   // 친구들은 문 앞을 막아 서 있다
   const seen = new Set();
@@ -7735,7 +7903,11 @@ function setupReturn(L) {
   GUARD.bear = Math.PI;
   placeWaitingCrowd(18 + 4 * saved.length);
   // 집 안에서 들고 나온 산탄총
-  sgEquip(clamp(L.shells | 0, 6, 30));
+  if (fromSauna) {
+    const shells = clamp(m.shells | 0, 0, 30);
+    if (shells > 0) sgEquip(shells);
+    equipStreetRockets(L.rockets);
+  } else sgEquip(clamp(L.shells | 0, 6, 30));
   if (m.face) addMeFaceBlood(clamp(m.face | 0, 0, 34));
   if (m.shirt) addShirtBlood(clamp(m.shirt | 0, 0, 60));
   $('hud').hidden = false; weaponEl.hidden = false;
@@ -7817,7 +7989,7 @@ function simulate(dt) {
   bdaySim(dt);
   if (!BD.on) bdayCheckReady();
   if (G.state !== 'back' && G.state !== 'enter') allySim(dt);
-  if (G.state === 'play') { combatSim(dt); sgTick(dt); }
+  if (G.state === 'play') { combatSim(dt); sgTick(dt); streetRocketTick(dt); }
   dangerSim(dt);
   burstSim(dt);
   // 무기 버튼 모양
@@ -7833,7 +8005,7 @@ function animate(dt) {
   flushCrowd();
   meAnimate(dt);
   alliesAnimate(dt);
-  houseAnimate(dt);
+  houseAnimate(dt); animateSauna(dt);
   sgAnimate(dt);
   fxUpdate(dt);
   bdayAnimate(dt);

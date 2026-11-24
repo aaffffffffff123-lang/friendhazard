@@ -271,6 +271,8 @@ body:not(.touch) #touchUI { display: none; }
   setTimeout(function () { if (!window.__fhReady) { var e = document.getElementById('err'); e.hidden = false; e.textContent = '3D 화면을 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침해 주세요.'; } }, 15000);
 </script>
 <script type="module">
+import { bindRoomTouch } from './room-touch.js';
+import { rocketWarheadGeo, buildRocketModel } from './rocket-model.js';
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
 window.__fhReady = true;
 
@@ -4336,42 +4338,9 @@ function makeArm(side) {
 VM.arms = [makeArm(1), makeArm(-1)];
 VM.knife = VM.arms[0].knife;
 // 로켓런처 모양 (사물함에 세워 둔 것과 손에 든 것 모두): 국방색 관, 나무 열 가리개, 손잡이 둘, 옆 조준경, 앞에 꽂힌 탄두
-function rocketWarheadGeo() {
-  const parts = [];
-  const neck = new THREE.CylinderGeometry(0.028, 0.034, 0.08, 12); neck.rotateX(Math.PI / 2); neck.translate(0, 0, -0.04); parts.push(neck);
-  const body = new THREE.CylinderGeometry(0.068, 0.06, 0.16, 16); body.rotateX(Math.PI / 2); body.translate(0, 0, -0.16); parts.push(body);
-  const cone = new THREE.CylinderGeometry(0.014, 0.068, 0.22, 16); cone.rotateX(Math.PI / 2); cone.translate(0, 0, -0.35); parts.push(cone);
-  return mergeGeos(parts);
-}
-const WARHEAD_G = rocketWarheadGeo();
+const WARHEAD_G = rocketWarheadGeo(THREE, mergeGeos);
 function makeRocketModel(world) {
-  const g = new THREE.Group();
-  const mk = world ? (c) => toonLit(c) : (c) => vmToon(c);
-  const outM = world ? OUT_LIT : VM_OUT;
-  const olive = mk(0x56653a), oliveDk = mk(0x3c4728), wood = mk(0x8a4f2a), black = mk(0x232227), steel = mk(0x7c7f86), tip = mk(0x2b2b30), war = mk(0x77843f);
-  const part = (geo, mat, x, y, z, outline = true, parent = g) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); if (outline) m.add(new THREE.Mesh(geo, outM)); return m; };
-  const tube = new THREE.CylinderGeometry(0.043, 0.043, 0.96, 16); tube.rotateX(Math.PI / 2);
-  part(tube, olive, 0, 0, -0.14);
-  const flare = new THREE.CylinderGeometry(0.074, 0.046, 0.2, 16, 1, true); flare.rotateX(-Math.PI / 2);
-  part(flare, oliveDk, 0, 0, 0.42);
-  const guard = new THREE.CylinderGeometry(0.056, 0.056, 0.3, 14); guard.rotateX(Math.PI / 2);
-  part(guard, wood, 0, 0, 0.02);
-  for (const z of [-0.13, 0.17]) { const r = new THREE.TorusGeometry(0.057, 0.008, 6, 16); part(r, steel, 0, 0, z, false); }
-  const muzzle = new THREE.CylinderGeometry(0.05, 0.05, 0.05, 16); muzzle.rotateX(Math.PI / 2);
-  part(muzzle, oliveDk, 0, 0, -0.6);
-  // 손잡이: 앞(왼손), 방아쇠(오른손)
-  const fg = new THREE.BoxGeometry(0.034, 0.12, 0.05); fg.rotateX(0.3); part(fg, black, 0, -0.095, -0.2);
-  const tg = new THREE.BoxGeometry(0.036, 0.13, 0.055); tg.rotateX(0.32); part(tg, black, 0, -0.1, 0.12);
-  const tgd = new THREE.TorusGeometry(0.03, 0.007, 6, 12, Math.PI); tgd.rotateY(Math.PI / 2); tgd.rotateX(Math.PI); part(tgd, black, 0, -0.045, 0.06, false);
-  // 조준경 (왼쪽 위)
-  const sb = new THREE.BoxGeometry(0.028, 0.05, 0.09); part(sb, black, -0.06, 0.04, -0.02);
-  const lens = new THREE.CylinderGeometry(0.017, 0.017, 0.1, 12); lens.rotateX(Math.PI / 2); part(lens, steel, -0.06, 0.07, -0.02, false);
-  // 탄두
-  const head = new THREE.Group(); head.position.set(0, 0, -0.62); g.add(head);
-  part(WARHEAD_G, war, 0, 0, 0, true, head);
-  const t2 = new THREE.CylinderGeometry(0.004, 0.014, 0.05, 10); t2.rotateX(Math.PI / 2); part(t2, tip, 0, 0, -0.485, false, head);
-  g.userData.head = head;
-  return g;
+  return buildRocketModel(THREE, world ? toonLit : vmToon, world ? OUT_LIT : VM_OUT, WARHEAD_G);
 }
 // 로켓런처 들기: 오른 어깨에 얹고 오른손 방아쇠, 왼손 앞 손잡이
 (() => {
@@ -4493,7 +4462,11 @@ function tryFire() {
   if (PL.run > 0.35) { if (INPUT.trigger) WEP.fireQ = 0.3; return; }
   const ps = WEP.pistol, rk = WEP.rocket;
   if (WEP.cur === 'pistol') {
-    if (ps.reloadT > 0 || ps.cd > 0) return;
+    if (ps.reloadT > 0) return;
+    if (ps.cd > 0) {
+      if (INPUT.trigger && ps.cd <= 0.1) WEP.fireQ = 0.16;
+      return;
+    }
     let h = ps.hand;
     if (ps.mag[h] <= 0) h = 1 - h;
     if (ps.mag[h] <= 0) {
@@ -4587,6 +4560,7 @@ function bulletHit(dmgHead, dmgBody, dmgLegs, power, weapon, falloff = 0) {
   return null;
 }
 function shootPistol(h) {
+  applyCamera(0); // 직전 렌더 뒤에 들어온 조준 입력도 이번 발에 반영한다.
   const arm = VM.arms[h];
   arm.rec = 1; arm.flashT = 0.055; arm.slideT = 0.09;
   arm.flash.material.rotation = rand(0, TAU); const fs = rand(0.085, 0.12); arm.flash.scale.set(fs, fs, 1);
@@ -4604,6 +4578,7 @@ function shootPistol(h) {
 const ROCKETS = [];
 const rocketMat = toonLit(0x56653a);
 function shootRocket() {
+  applyCamera(0); // 직전 렌더 뒤에 들어온 조준 입력도 이번 발에 반영한다.
   const s = VM.rocket;
   s.rec = 1; s.flashT = 0.09; s.head.visible = false;
   s.flash.material.rotation = rand(0, TAU); s.back.material.rotation = rand(0, TAU);
@@ -6150,7 +6125,7 @@ function startGame() {
   doorStart();
 }
 // ───────────────────────── 입력 ─────────────────────────
-const MOUSE_SENS = 0.0022, TOUCH_SENS = 0.0066;
+const MOUSE_SENS = 0.0022;
 let SENS = clamp(+store.get('fh_room_sens', 1) || 1, 0.4, 2.2);
 // 마우스 잠금이 아예 안 되는 곳(일부 앱 안 브라우저 등)에서만 잠금 없이 둘러보기
 let LOCKED = false, FALLBACK = typeof canvas.requestPointerLock !== 'function', PAUSED = false;
@@ -6184,7 +6159,7 @@ function requestLock() {
 function pauseHint() { $('pauseHint').textContent = IS_TOUCH || FALLBACK ? '' : 'Esc를 누르면 이 화면이 나옵니다'; }
 function releaseInputs() {
   INPUT.fire = false; INPUT.keys.x = INPUT.keys.z = 0; KEYS.clear(); INPUT.run = false; INPUT.stickRun = false;
-  INPUT.stick.x = INPUT.stick.z = 0; TT.stick = TT.look = TT.fire = null; stickEl.hidden = true; fireEl.classList.remove('down');
+  WEP.fireQ = 0; releaseTouch();
 }
 function setPaused(on) {
   PAUSED = on;
@@ -6265,8 +6240,9 @@ window.addEventListener('keydown', (e) => {
     else if (e.code === 'KeyM' && !e.repeat) setMuted(!MUTED);
     return;
   }
-  if (MOVE_KEYS[e.code]) { KEYS.add(e.code); keysToVec(); e.preventDefault(); if (IS_TOUCH && !e.repeat) setTouch(false); return; }
-  if (TURN_KEYS[e.code]) { KEYS.add(e.code); e.preventDefault(); if (IS_TOUCH && !e.repeat) setTouch(false); return; }
+  if (PAUSED) return;
+  if (MOVE_KEYS[e.code]) { if (e.repeat) return; KEYS.add(e.code); keysToVec(); e.preventDefault(); if (IS_TOUCH && !e.repeat) setTouch(false); return; }
+  if (TURN_KEYS[e.code]) { if (e.repeat) return; KEYS.add(e.code); e.preventDefault(); if (IS_TOUCH && !e.repeat) setTouch(false); return; }
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') { INPUT.run = true; return; }
   if (e.repeat) return;
   if (e.code === 'KeyM') { setMuted(!MUTED); return; }
@@ -6283,73 +6259,15 @@ window.addEventListener('keyup', (e) => {
   if (TURN_KEYS[e.code]) KEYS.delete(e.code);
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') INPUT.run = false;
 });
-window.addEventListener('blur', () => { KEYS.clear(); keysToVec(); INPUT.fire = false; INPUT.run = false; });
+window.addEventListener('blur', releaseInputs);
 
 // 터치: 왼쪽은 손가락 닿은 자리에 생기는 스틱, 오른쪽은 끌어서 둘러보기
-const TT = { stick: null, sx: 0, sy: 0, look: null, lx: 0, ly: 0, fire: null, fx: 0, fy: 0 };
-const stickEl = $('stick'), knobEl = stickEl.querySelector('.knob');
-const STICK_R = 56;
-function touchLook(dx, dy) {
-  const f = (d) => d * TOUCH_SENS * SENS * (0.5 + 0.7 * Math.min(1, Math.abs(d) / 16));
-  const wide = clamp(640 / VW, 1, 1.6);   // 폭이 좁은 세로 화면일수록 좌우로 더 돈다
-  PL.yaw -= f(dx) * wide;
-  PL.pitch = clamp(PL.pitch - f(dy) * (1 + (wide - 1) * 0.4), -1.32, 1.32);
-}
-canvas.addEventListener('pointerdown', (e) => {
-  if (e.pointerType === 'mouse') return;
-  setTouch(true);
-  if (G.state === 'door') { skipDoor(); return; }
-  if (G.state !== 'play' || PAUSED) return;
-  const stickZone = e.clientX < VW * 0.45 && (VW >= VH || e.clientY > VH * 0.42);
-  if (stickZone && TT.stick === null) {
-    TT.stick = e.pointerId; TT.sx = e.clientX; TT.sy = e.clientY;
-    stickEl.hidden = false; stickEl.style.transform = `translate3d(${TT.sx}px, ${TT.sy}px, 0)`; knobEl.style.transform = 'translate(0px, 0px)';
-  } else if (TT.look === null) {
-    TT.look = e.pointerId; TT.lx = e.clientX; TT.ly = e.clientY;
-  } else return;
-  try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
-  e.preventDefault();
+const releaseTouch = bindRoomTouch({
+  canvas, stickEl: $('stick'), fireEl: $('fire'), input: INPUT, player: PL,
+  getSensitivity: () => SENS, onTouch: () => setTouch(true),
+  skipIntro: () => { if (G.state !== 'door') return false; skipDoor(); return true; },
+  canPlay: () => G.state === 'play' && !PAUSED, fireNow: tryFire,
 });
-canvas.addEventListener('pointermove', (e) => {
-  if (e.pointerId === TT.stick) {
-    let dx = e.clientX - TT.sx, dy = e.clientY - TT.sy;
-    const l = Math.hypot(dx, dy);
-    if (l > STICK_R) { const over = l - STICK_R; TT.sx += dx / l * over; TT.sy += dy / l * over; dx = e.clientX - TT.sx; dy = e.clientY - TT.sy; stickEl.style.transform = `translate3d(${TT.sx}px, ${TT.sy}px, 0)`; }
-    knobEl.style.transform = `translate(${dx}px, ${dy}px)`;
-    // 가운데 근처는 무시하고 부드럽게
-    const len = Math.hypot(dx, dy), m = len / STICK_R, dead = 0.12;
-    const k = m < dead ? 0 : clamp((m - dead) / (1 - dead), 0, 1);
-    INPUT.stick.x = len ? dx / len * k : 0;
-    INPUT.stick.z = len ? dy / len * k : 0;
-    // 앞으로 끝까지 밀면 달리기
-    INPUT.stickRun = k > 0.96 && dy < 0 && Math.abs(dx) < -dy * 0.6;
-  } else if (e.pointerId === TT.look) {
-    touchLook(e.clientX - TT.lx, e.clientY - TT.ly); TT.lx = e.clientX; TT.ly = e.clientY;
-  }
-});
-function touchEnd(e) {
-  if (e.pointerId === TT.stick) { TT.stick = null; INPUT.stick.x = INPUT.stick.z = 0; INPUT.stickRun = false; stickEl.hidden = true; }
-  if (e.pointerId === TT.look) TT.look = null;
-}
-canvas.addEventListener('pointerup', touchEnd);
-canvas.addEventListener('pointercancel', touchEnd);
-canvas.addEventListener('lostpointercapture', touchEnd);
-const fireEl = $('fire');
-fireEl.addEventListener('pointerdown', (e) => {
-  e.preventDefault(); e.stopPropagation();
-  if (G.state !== 'play' || PAUSED) return;
-  TT.fire = e.pointerId; TT.fx = e.clientX; TT.fy = e.clientY;
-  try { fireEl.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
-  fireEl.classList.add('down');
-  INPUT.fire = true; INPUT.trigger = true;
-});
-fireEl.addEventListener('pointermove', (e) => {
-  if (e.pointerId !== TT.fire) return;
-  // 쏘면서 끌면 조준도 따라간다
-  touchLook(e.clientX - TT.fx, e.clientY - TT.fy); TT.fx = e.clientX; TT.fy = e.clientY;
-});
-function fireUp(e) { if (e.pointerId !== TT.fire) return; TT.fire = null; fireEl.classList.remove('down'); INPUT.fire = false; }
-fireEl.addEventListener('pointerup', fireUp); fireEl.addEventListener('pointercancel', fireUp); fireEl.addEventListener('lostpointercapture', fireUp);
 // 뒤돌기 (바이오하자드 퀵턴): 0.24초 동안 180도
 const QT = { t: 0, from: 0 };
 function quickTurn() { if (G.state !== 'play' || QT.t > 0) return; QT.t = 0.24; QT.from = PL.yaw; }

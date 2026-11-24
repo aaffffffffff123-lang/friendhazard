@@ -248,7 +248,7 @@ body:not(.touch) #touchUI { display: none; }
   </section>
   <script>
     // 밖(원래 게임)에서 들어왔으면 시작 화면 대신 어두운 현관 앞에서 시작
-    (function () { try { var v = JSON.parse(sessionStorage.getItem('fh_link') || 'null'); if (!v) { var m = location.hash.match(/[#&]s=([^&]+)/); if (m) v = JSON.parse(decodeURIComponent(m[1])); } if (v && v.v === 1 && v.dir === 'in' && Date.now() - (v.at || 0) < 6 * 3600e3) { document.getElementById('title').hidden = true; document.getElementById('gate').hidden = false; var f = document.getElementById('fade'); f.style.opacity = 1; f.style.visibility = 'visible'; } } catch (e) {} })();
+    (function () { try { var v = JSON.parse(sessionStorage.getItem('fh_link') || 'null'); if (!v) { var m = location.hash.match(/[#&]s=([^&]+)/); if (m) v = JSON.parse(decodeURIComponent(m[1])); } if (v && v.v === 1 && v.dir === 'in' && (!v.to || v.to === 'gosiwon') && Date.now() - (v.at || 0) < 6 * 3600e3) { document.getElementById('title').hidden = true; document.getElementById('gate').hidden = false; var f = document.getElementById('fade'); f.style.opacity = 1; f.style.visibility = 'visible'; } } catch (e) {} })();
   </script>
   <button id="mute" class="iconbtn" type="button" aria-label="소리 끄기">
     <svg class="on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="#1f1a24"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="#1f1a24" stroke-width="2" stroke-linecap="round"/></svg>
@@ -262,6 +262,7 @@ body:not(.touch) #touchUI { display: none; }
   setTimeout(function () { if (!window.__fhReady) { var e = document.getElementById('err'); e.hidden = false; e.textContent = '3D 화면을 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침해 주세요.'; } }, 15000);
 </script>
 <script type="module">
+import { bindRoomTouch } from './room-touch.js';
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
 window.__fhReady = true;
 
@@ -303,7 +304,7 @@ function linkWrite(o) {
 }
 function linkClear() { try { sessionStorage.removeItem(LINK_KEY); } catch (e) { /* 무시 */ } if (location.hash) history.replaceState(null, '', location.pathname + location.search); }
 // 밖에서 들어온 판이면 그 판의 거절 횟수를 이어서 센다
-const LINK = (() => { const l = linkRead(); return l && l.dir === 'in' ? l : null; })();
+const LINK = (() => { const l = linkRead(); return l && l.dir === 'in' && (!l.to || l.to === 'gosiwon') ? l : null; })();
 const LINK_KILLS = LINK ? Math.max(0, LINK.kills | 0) : 0;
 // 다시하기·처음부터: 원래 게임의 시작 화면으로
 function goMainTitle() { linkClear(); location.replace('./' + location.search); }
@@ -3503,7 +3504,11 @@ function tryFire() {
   if (PL.run > 0.35) { if (INPUT.trigger) WEP.fireQ = 0.3; return; }
   const ps = WEP.pistol, sg = WEP.shotgun;
   if (WEP.cur === 'pistol') {
-    if (ps.reloadT > 0 || ps.cd > 0) return;
+    if (ps.reloadT > 0) return;
+    if (ps.cd > 0) {
+      if (INPUT.trigger && ps.cd <= 0.1) WEP.fireQ = 0.16;
+      return;
+    }
     let h = ps.hand;
     if (ps.mag[h] <= 0) h = 1 - h;
     if (ps.mag[h] <= 0) {
@@ -3598,6 +3603,7 @@ function bulletHit(dmgHead, dmgBody, dmgLegs, power, weapon, falloff = 0) {
   return null;
 }
 function shootPistol(h) {
+  applyCamera(0); // 직전 렌더 뒤에 들어온 조준 입력도 이번 발에 반영한다.
   const arm = VM.arms[h];
   arm.rec = 1; arm.flashT = 0.055; arm.slideT = 0.09;
   arm.flash.material.rotation = rand(0, TAU); const fs = rand(0.085, 0.12); arm.flash.scale.set(fs, fs, 1);
@@ -3612,6 +3618,7 @@ function shootPistol(h) {
   noiseAlert(16);
 }
 function shootShotgun() {
+  applyCamera(0); // 직전 렌더 뒤에 들어온 조준 입력도 이번 발에 반영한다.
   const s = VM.shot;
   s.rec = 1; s.flashT = 0.07;
   s.flash.material.rotation = rand(0, TAU);
@@ -4546,7 +4553,7 @@ function exitTick(dt) {
 function goOutside() {
   G.state = 'leaving';
   const shells = WEP.hasShotgun ? WEP.shotgun.mag + WEP.shotgun.res : 0;
-  const hash = linkWrite({ dir: 'out', kills: LINK_KILLS + G.kills, shells, main: LINK.main || {} });
+  const hash = linkWrite({ dir: 'out', from: 'gosiwon', kills: LINK_KILLS + G.kills, shells, main: LINK.main || {} });
   stopAllVoices(); humStop(); sfxDragAllStop();
   if (document.pointerLockElement) document.exitPointerLock();
   location.replace('./' + location.search + hash);
@@ -4863,7 +4870,7 @@ function startGame() {
 
 
 // ───────────────────────── 입력 ─────────────────────────
-const MOUSE_SENS = 0.0022, TOUCH_SENS = 0.0066;
+const MOUSE_SENS = 0.0022;
 let SENS = clamp(+store.get('fh_room_sens', 1) || 1, 0.4, 2.2);
 // 마우스 잠금이 아예 안 되는 곳(일부 앱 안 브라우저 등)에서만 잠금 없이 둘러보기
 let LOCKED = false, FALLBACK = typeof canvas.requestPointerLock !== 'function', PAUSED = false;
@@ -4897,7 +4904,7 @@ function requestLock() {
 function pauseHint() { $('pauseHint').textContent = IS_TOUCH || FALLBACK ? '' : 'Esc를 누르면 이 화면이 나옵니다'; }
 function releaseInputs() {
   INPUT.fire = false; INPUT.keys.x = INPUT.keys.z = 0; KEYS.clear(); INPUT.run = false; INPUT.stickRun = false;
-  INPUT.stick.x = INPUT.stick.z = 0; TT.stick = TT.look = TT.fire = null; stickEl.hidden = true; fireEl.classList.remove('down');
+  WEP.fireQ = 0; releaseTouch();
 }
 function setPaused(on) {
   PAUSED = on;
@@ -4963,8 +4970,9 @@ window.addEventListener('keydown', (e) => {
     else if (e.code === 'KeyM' && !e.repeat) setMuted(!MUTED);
     return;
   }
-  if (MOVE_KEYS[e.code]) { KEYS.add(e.code); keysToVec(); e.preventDefault(); if (IS_TOUCH && !e.repeat) setTouch(false); return; }
-  if (TURN_KEYS[e.code]) { KEYS.add(e.code); e.preventDefault(); if (IS_TOUCH && !e.repeat) setTouch(false); return; }
+  if (PAUSED) return;
+  if (MOVE_KEYS[e.code]) { if (e.repeat) return; KEYS.add(e.code); keysToVec(); e.preventDefault(); if (IS_TOUCH && !e.repeat) setTouch(false); return; }
+  if (TURN_KEYS[e.code]) { if (e.repeat) return; KEYS.add(e.code); e.preventDefault(); if (IS_TOUCH && !e.repeat) setTouch(false); return; }
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') { INPUT.run = true; return; }
   if (e.repeat) return;
   if (e.code === 'KeyM') { setMuted(!MUTED); return; }
@@ -4981,73 +4989,15 @@ window.addEventListener('keyup', (e) => {
   if (TURN_KEYS[e.code]) KEYS.delete(e.code);
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') INPUT.run = false;
 });
-window.addEventListener('blur', () => { KEYS.clear(); keysToVec(); INPUT.fire = false; INPUT.run = false; });
+window.addEventListener('blur', releaseInputs);
 
 // 터치: 왼쪽은 손가락 닿은 자리에 생기는 스틱, 오른쪽은 끌어서 둘러보기
-const TT = { stick: null, sx: 0, sy: 0, look: null, lx: 0, ly: 0, fire: null, fx: 0, fy: 0 };
-const stickEl = $('stick'), knobEl = stickEl.querySelector('.knob');
-const STICK_R = 56;
-function touchLook(dx, dy) {
-  const f = (d) => d * TOUCH_SENS * SENS * (0.5 + 0.7 * Math.min(1, Math.abs(d) / 16));
-  const wide = clamp(640 / VW, 1, 1.6);   // 폭이 좁은 세로 화면일수록 좌우로 더 돈다
-  PL.yaw -= f(dx) * wide;
-  PL.pitch = clamp(PL.pitch - f(dy) * (1 + (wide - 1) * 0.4), -1.32, 1.32);
-}
-canvas.addEventListener('pointerdown', (e) => {
-  if (e.pointerType === 'mouse') return;
-  setTouch(true);
-  if (G.state === 'door') { skipDoor(); return; }
-  if (G.state !== 'play' || PAUSED) return;
-  const stickZone = e.clientX < VW * 0.45 && (VW >= VH || e.clientY > VH * 0.42);
-  if (stickZone && TT.stick === null) {
-    TT.stick = e.pointerId; TT.sx = e.clientX; TT.sy = e.clientY;
-    stickEl.hidden = false; stickEl.style.transform = `translate3d(${TT.sx}px, ${TT.sy}px, 0)`; knobEl.style.transform = 'translate(0px, 0px)';
-  } else if (TT.look === null) {
-    TT.look = e.pointerId; TT.lx = e.clientX; TT.ly = e.clientY;
-  } else return;
-  try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
-  e.preventDefault();
+const releaseTouch = bindRoomTouch({
+  canvas, stickEl: $('stick'), fireEl: $('fire'), input: INPUT, player: PL,
+  getSensitivity: () => SENS, onTouch: () => setTouch(true),
+  skipIntro: () => { if (G.state !== 'door') return false; skipDoor(); return true; },
+  canPlay: () => G.state === 'play' && !PAUSED, fireNow: tryFire,
 });
-canvas.addEventListener('pointermove', (e) => {
-  if (e.pointerId === TT.stick) {
-    let dx = e.clientX - TT.sx, dy = e.clientY - TT.sy;
-    const l = Math.hypot(dx, dy);
-    if (l > STICK_R) { const over = l - STICK_R; TT.sx += dx / l * over; TT.sy += dy / l * over; dx = e.clientX - TT.sx; dy = e.clientY - TT.sy; stickEl.style.transform = `translate3d(${TT.sx}px, ${TT.sy}px, 0)`; }
-    knobEl.style.transform = `translate(${dx}px, ${dy}px)`;
-    // 가운데 근처는 무시하고 부드럽게
-    const len = Math.hypot(dx, dy), m = len / STICK_R, dead = 0.12;
-    const k = m < dead ? 0 : clamp((m - dead) / (1 - dead), 0, 1);
-    INPUT.stick.x = len ? dx / len * k : 0;
-    INPUT.stick.z = len ? dy / len * k : 0;
-    // 앞으로 끝까지 밀면 달리기
-    INPUT.stickRun = k > 0.96 && dy < 0 && Math.abs(dx) < -dy * 0.6;
-  } else if (e.pointerId === TT.look) {
-    touchLook(e.clientX - TT.lx, e.clientY - TT.ly); TT.lx = e.clientX; TT.ly = e.clientY;
-  }
-});
-function touchEnd(e) {
-  if (e.pointerId === TT.stick) { TT.stick = null; INPUT.stick.x = INPUT.stick.z = 0; INPUT.stickRun = false; stickEl.hidden = true; }
-  if (e.pointerId === TT.look) TT.look = null;
-}
-canvas.addEventListener('pointerup', touchEnd);
-canvas.addEventListener('pointercancel', touchEnd);
-canvas.addEventListener('lostpointercapture', touchEnd);
-const fireEl = $('fire');
-fireEl.addEventListener('pointerdown', (e) => {
-  e.preventDefault(); e.stopPropagation();
-  if (G.state !== 'play' || PAUSED) return;
-  TT.fire = e.pointerId; TT.fx = e.clientX; TT.fy = e.clientY;
-  try { fireEl.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
-  fireEl.classList.add('down');
-  INPUT.fire = true; INPUT.trigger = true;
-});
-fireEl.addEventListener('pointermove', (e) => {
-  if (e.pointerId !== TT.fire) return;
-  // 쏘면서 끌면 조준도 따라간다
-  touchLook(e.clientX - TT.fx, e.clientY - TT.fy); TT.fx = e.clientX; TT.fy = e.clientY;
-});
-function fireUp(e) { if (e.pointerId !== TT.fire) return; TT.fire = null; fireEl.classList.remove('down'); INPUT.fire = false; }
-fireEl.addEventListener('pointerup', fireUp); fireEl.addEventListener('pointercancel', fireUp); fireEl.addEventListener('lostpointercapture', fireUp);
 // 뒤돌기 (바이오하자드 퀵턴): 0.24초 동안 180도
 const QT = { t: 0, from: 0 };
 function quickTurn() { if (G.state !== 'play' || QT.t > 0) return; QT.t = 0.24; QT.from = PL.yaw; }
