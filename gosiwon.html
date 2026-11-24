@@ -952,6 +952,13 @@ function humStop() {
 
 // ── 목소리 ──
 function voicesPlaying() { let n = 0; for (const h of activeVoices) if (!h.stopped) n++; return n; }
+let nextCrowdVoice = 0;
+function playCrowdVoice(key, options) {
+  if (!ok() || MUTED || ac.currentTime < nextCrowdVoice || voicesPlaying() >= (IS_TOUCH ? 3 : 4)) return null;
+  const h = playVoice(key, options);
+  if (h) nextCrowdVoice = ac.currentTime + 0.12;
+  return h;
+}
 function playVoice(key, o = {}) {
   if (!ok() || !VO[key]) return null;
   const buf = VO[key];
@@ -4191,19 +4198,19 @@ function speechTick(p, dt, d) {
   if (lieIdle) {
     // 혼자 누워서 훌쩍이며 중얼거림 (작게, 띄엄띄엄)
     p.speakCD = rand(4.5, 8.5);
-    if (d > 11 || voicesPlaying() >= 5 || G.state !== 'play' || (p.vo && !p.vo.stopped)) return;
+    if (d > 11 || G.state !== 'play' || (p.vo && !p.vo.stopped)) return;
     const occ = !losClear(p.hc.x, p.hc.y + 0.1, p.hc.z, PL.x, PL.eye, PL.z);
-    const h = playVoice(p.voiceKey, { rate: p.vrate * 0.97, gain: clamp(0.75 - d * 0.05, 0.12, 0.6) * (occ ? 0.7 : 1), pan: panOf(p.x, p.z), sob: 0.022, lp: occ ? 650 : 1500, verb: 0.42 });
+    const h = playCrowdVoice(p.voiceKey, { rate: p.vrate * 0.97, gain: clamp(0.75 - d * 0.05, 0.12, 0.6) * (occ ? 0.7 : 1), pan: panOf(p.x, p.z), sob: 0.022, lp: occ ? 650 : 1500, verb: 0.42 });
     if (h) p.vo = h;
     return;
   }
   const cling = p.state === 'cling';
   p.speakCD = cling ? rand(2.0, 4.0) : rand(2.2, 4.8) * (d > 9 ? 1.4 : 1);
-  if (talking || d > 19 || voicesPlaying() >= 6 || G.state !== 'play') return;
+  if (talking || d > 19 || G.state !== 'play') return;
   const occl = !cling && !(p.state === 'chase' ? p.los : losClear(p.hc.x, p.hc.y, p.hc.z, PL.x, PL.eye, PL.z));
   const vol = (cling ? 0.62 : clamp(1.25 - d * 0.075, 0.2, 1)) * (occl ? 0.75 : 1);
   const key = cling ? p.voiceKey.replace(/^g_/, 'f_') : p.voiceKey;
-  const h = playVoice(VO[key] ? key : p.voiceKey, { rate: p.vrate * (cling ? 0.96 : 1), gain: vol * (lie ? 0.85 : 1), pan: panOf(p.x, p.z), sob: lie ? 0.018 : cling ? 0.014 : 0.028, lp: occl ? 720 : lie ? 1900 : d > 9 ? 2600 : 0, verb: occl ? 0.5 : lie ? 0.38 : 0.32 });
+  const h = playCrowdVoice(VO[key] ? key : p.voiceKey, { rate: p.vrate * (cling ? 0.96 : 1), gain: vol * (lie ? 0.85 : 1), pan: panOf(p.x, p.z), sob: lie ? 0.018 : cling ? 0.014 : 0.028, lp: occl ? 720 : lie ? 1900 : d > 9 ? 2600 : 0, verb: occl ? 0.5 : lie ? 0.38 : 0.32 });
   if (h && lie) p.speakCD += rand(1.0, 2.5);
   if (h) p.vo = h;
 }
@@ -4421,7 +4428,11 @@ function startEvent() {
   later(2.3, () => {
     if (!G.event || G.state !== 'play') return;
     const keys = [...F_KEYS_F, ...F_KEYS_M];
-    for (let i = 0; i < 7; i++) playVoice(pick(keys), { rate: rand(0.9, 1.08), gain: rand(0.28, 0.5), pan: rand(-0.9, 0.9), sob: 0.03, lp: rand(500, 900), verb: 0.7, delay: i * rand(0.12, 0.3) });
+    for (let i = 0; i < 7; i++) {
+      later(i * 0.23, () => {
+        if (G.state === 'play') playCrowdVoice(pick(keys), { rate: rand(0.9, 1.08), gain: rand(0.28, 0.5), pan: rand(-0.9, 0.9), sob: 0.03, lp: rand(500, 900), verb: 0.7 });
+      });
+    }
   });
   // 근처 방에서 누운 사람들이 스르륵 미끄러져 나온다
   later(3.0, () => { if (G.event && G.state === 'play') burstRoom({ lie: true, min: 2.5, max: 11 }); });
@@ -4439,7 +4450,7 @@ function eventTick(dt) {
   G.chorusT -= dt;
   if (G.chorusT <= 0 && G.eventT > 3) {
     G.chorusT = rand(0.8, 1.8);
-    if (voicesPlaying() < 5) playVoice(pick([...F_KEYS_F, ...F_KEYS_M]), { rate: rand(0.9, 1.08), gain: rand(0.15, 0.3), pan: rand(-0.9, 0.9), sob: 0.03, lp: rand(450, 800), verb: 0.75 });
+    playCrowdVoice(pick([...F_KEYS_F, ...F_KEYS_M]), { rate: rand(0.9, 1.08), gain: rand(0.15, 0.3), pan: rand(-0.9, 0.9), sob: 0.03, lp: rand(450, 800), verb: 0.75 });
   }
 }
 

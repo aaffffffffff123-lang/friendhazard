@@ -135,7 +135,7 @@ body { font-family: var(--font-sans); word-break: keep-all; overflow-wrap: anywh
 @keyframes flash { 0% { opacity: 1; } 100% { opacity: 0; } }
 
 /* HUD */
-#hud { position: absolute; left: calc(72px + var(--safe-l)); top: calc(12px + var(--safe-t)); display: grid; gap: 0; }
+#hud { position: absolute; left: calc(122px + var(--safe-l)); top: calc(12px + var(--safe-t)); display: grid; gap: 0; }
 #hud .lbl { font-size: 11.5px; font-weight: 700; color: var(--ink-2); letter-spacing: 0.08em; }
 #hud b { font-family: var(--font-display); font-weight: 400; font-size: 40px; line-height: 1.05; color: var(--ink); font-variant-numeric: tabular-nums; display: inline-block; transform-origin: 0 70%; }
 #hud b.pop { animation: pop .2s ease-out; }
@@ -146,6 +146,11 @@ body { font-family: var(--font-sans); word-break: keep-all; overflow-wrap: anywh
 .iconbtn { position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--ink); background: rgba(255, 255, 255, 0.9); display: grid; place-items: center; padding: 0; }
 .iconbtn svg { width: 22px; height: 22px; }
 #mute { left: calc(14px + var(--safe-l)); top: calc(12px + var(--safe-t)); z-index: 6; }
+#pauseBtn { left: calc(66px + var(--safe-l)); top: calc(12px + var(--safe-t)); z-index: 6; }
+#pause { min-width: min(260px, 85vw); padding: 24px; text-align: center; pointer-events: auto; color: var(--ink); background: white; border: 3px solid var(--ink); border-radius: 10px; box-shadow: 0 5px 0 var(--ink); }
+#pause::backdrop { background: rgba(255, 255, 255, .75); }
+#pause h2 { margin: 0 0 18px; font: 22px var(--font-display); }
+#ui #resume { min-height: 46px; padding: 8px 32px; border: 0; border-radius: 3px; color: white; background: var(--ink); font-weight: 900; }
 #mute .off { display: none; }
 #mute.muted .on { display: none; }
 #mute.muted .off { display: block; }
@@ -300,6 +305,9 @@ body { font-family: var(--font-sans); word-break: keep-all; overflow-wrap: anywh
   #backHint { bottom: calc(12px + var(--safe-b)); padding: 8px 16px 9px; }
   #toast { top: calc(6px + var(--safe-t)); padding: 7px 12px 7px 8px; }
 }
+@media (max-width: 620px) {
+  #toast, #btoast { top: calc(68px + var(--safe-t)); }
+}
 @media (prefers-reduced-motion: reduce) {
   #hint .dot, #weapon.pulse, #weapon.knife.pulse { animation: none; }
 }
@@ -311,7 +319,7 @@ body { font-family: var(--font-sans); word-break: keep-all; overflow-wrap: anywh
   (function () { try { var v = JSON.parse(sessionStorage.getItem('fh_link') || 'null'); if (!v) { var m = location.hash.match(/[#&]s=([^&]+)/); if (m) v = JSON.parse(decodeURIComponent(m[1])); } if (v && v.v === 1 && v.dir === 'out' && Date.now() - (v.at || 0) < 6 * 3600e3) document.documentElement.classList.add('linkout'); } catch (e) {} })();
 </script>
 
-<canvas id="c" aria-label="게임 화면"></canvas>
+<canvas tabindex="-1" id="c" aria-label="게임 화면"></canvas>
 <div id="ui">
   <div id="danger"></div>
   <div id="bubbles"></div>
@@ -396,6 +404,11 @@ body { font-family: var(--font-sans); word-break: keep-all; overflow-wrap: anywh
   </section>
 
   <a id="arcade" href="https://aaffffffffff123-lang.github.io/arcade/" target="_top" aria-label="혐규오락실 — 다른 게임 하러 가기" title="혐규오락실"><svg class="arcade-face" viewBox="0 0 48 48" aria-hidden="true"><path d="M24.00 2.84 C27.19 2.93 30.48 3.49 33.44 4.70 C36.39 5.91 39.79 7.65 41.72 10.08 C43.64 12.51 44.41 16.18 44.97 19.28 C45.53 22.39 45.73 25.72 45.08 28.74 C44.42 31.76 43.07 35.11 41.06 37.40 C39.05 39.69 35.87 41.15 33.03 42.47 C30.19 43.79 27.09 45.14 24.00 45.31 C20.91 45.47 17.40 44.72 14.49 43.46 C11.58 42.19 8.30 40.21 6.54 37.72 C4.78 35.22 4.45 31.57 3.93 28.51 C3.41 25.45 2.76 22.23 3.42 19.37 C4.08 16.52 6.10 13.90 7.91 11.36 C9.72 8.82 11.61 5.56 14.29 4.14 C16.97 2.72 20.81 2.75 24.00 2.84 Z" fill="#221D1F"/><g stroke="#EFF1EC" stroke-width="2.2" stroke-linecap="round" fill="none"><path d="M13.2 8.4V17.9"/><path d="M20.4 6.2V16.6"/><path d="M27.6 6.2V16.6"/><path d="M34.6 8.8V18.3"/></g><g fill="#EFF1EC"><ellipse cx="18.1" cy="25.2" rx="2" ry="2.3"/><ellipse cx="29.9" cy="25.2" rx="2" ry="2.3"/></g><path d="M19.9 32.3a4.6 4.6 0 0 0 8.2 0" fill="none" stroke="#EFF1EC" stroke-width="2.3" stroke-linecap="round"/></svg><span class="arcade-word">혐규오락실</span></a>
+  <button id="pauseBtn" class="iconbtn" type="button" aria-label="일시정지" aria-haspopup="dialog" title="일시정지 (Esc / P)" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
+  <dialog id="pause" aria-labelledby="pauseTitle">
+    <h2 id="pauseTitle">일시정지</h2>
+    <button id="resume" type="button" autofocus>계속하기</button>
+  </dialog>
   <button id="mute" class="iconbtn" type="button" aria-label="소리 끄기">
     <svg class="on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="#1f1a24"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="#1f1a24" stroke-width="2" stroke-linecap="round"/></svg>
     <svg class="off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="#1f1a24"/><path d="M16.5 9.5l5 5m0-5l-5 5" stroke="#1f1a24" stroke-width="2" stroke-linecap="round"/></svg>
@@ -518,7 +531,7 @@ const VO = {};            // 이름 → AudioBuffer
 const activeVoices = new Set();
 
 function audioInit() {
-  if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+  if (ac) { audioPoke(); return; }
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return;
   ac = new AC({ latencyHint: 'interactive' });
@@ -537,8 +550,7 @@ function audioInit() {
   A.shaper = makeCurve(2.4);
   decodeVoices();
   if (ac.state === 'suspended') ac.resume();
-  setTimeout(renderMusicBuffer, 400);
-  setTimeout(renderBdayBuffers, 9000);
+  loadGameAudio();
 }
 // 소리가 끊겼을 때 되살리기: 멈춘 컨텍스트 재개, 출력이 망가졌으면(NaN) 버스를 새로 짬
 function audioRebuild() {
@@ -568,7 +580,7 @@ function audioWatch(dt) {
   if (bad) { audioBad++; audioRebuild(); }
 }
 function audioPoke() {
-  if (!ac || ac.state === 'running' || ac.state === 'closed') return;
+  if (G.paused || document.hidden || !ac || ac.state === 'running' || ac.state === 'closed') return;
   try { const p = ac.resume(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* 무시 */ }
 }
 
@@ -642,11 +654,11 @@ const ok = () => ac && (OFFLINE || ac.state === 'running');
 // ── 효과음 수 제한 ──
 // 후반에 한꺼번에 수백 개씩 만들면 휴대폰 소리 엔진이 버티지 못한다.
 // 중요도: 3 연출(도장, 하이파이브, 알림…) / 2 내 총·칼 / 1 쓰러뜨리는 소리 / 0 잔소리(탄피, 털썩, 철퍽, 휘두름)
-const SFX_MAX = 20;
+const SFX_MAX = 14;
 const sfxEnds = [];
 let sfxWinT = -1, sfxWinN = 0;
 function sfxGate(prio, dur) {
-  if (!ok()) return false;
+  if (!ok() || (MUTED && !OFFLINE)) return false;
   const now = ac.currentTime;
   for (let i = sfxEnds.length - 1; i >= 0; i--) if (sfxEnds[i] <= now) sfxEnds.splice(i, 1);
   if (now - sfxWinT > 0.06) { sfxWinT = now; sfxWinN = 0; }
@@ -659,10 +671,45 @@ function sfxGate(prio, dur) {
   return true;
 }
 
+// 각 효과음은 crowd.flac에 0.5초 간격으로 두 가지씩 녹음되어 있다.
+const combatOffsets = { gun: 0, tink: 1, flesh: 2, splat: 3, fall: 4, stab: 5, grab: 6, swing: 7, bat: 8 };
+let combatBuffer = null;
+function playCombatSample(name, volume, pan, verb) {
+  if (!combatBuffer || OFFLINE) return false;
+  const src = ac.createBufferSource();
+  src.buffer = combatBuffer;
+  src.playbackRate.value = rand(0.97, 1.03);
+  const out = outChain(volume, pan, verb);
+  src.connect(out);
+  src.start(0, combatOffsets[name] + (Math.random() < 0.5 ? 0 : 0.5), 0.32);
+  src.onended = () => { src.disconnect(); out.disconnect(); };
+  return true;
+}
+
+async function loadSoundFile(name) {
+  const response = await fetch('./audio/' + name);
+  if (!response.ok) throw new Error(name + ' ' + response.status);
+  const buffer = await ac.decodeAudioData(await response.arrayBuffer());
+  // 파일은 피크가 잘리지 않도록 1/4 레벨로 저장했다. 원래 믹스 레벨로 돌린다.
+  for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+    const data = buffer.getChannelData(ch);
+    for (let i = 0; i < data.length; i++) data[i] *= 4;
+  }
+  return buffer;
+}
+function loadGameAudio() {
+  loadSoundFile('crowd.flac').then(buf => { combatBuffer = buf; }).catch(() => {}); // 합성 효과음으로 대체
+  loadSoundFile('street.mp3').then(buf => { MUSIC_BUF = buf; musicHandoff(); }).catch(renderMusicBuffer);
+  Promise.all([loadSoundFile('birthday.mp3'), loadSoundFile('strings.mp3')])
+    .then(([song, strings]) => { BDAY_BUF = song; BDSTR_BUF = strings; })
+    .catch(renderBdayBuffers);
+}
+
 // ── 효과음 ──
 let lastGunT = 0;
 function sfxGun(pan = 0) {
   if (!sfxGate(2, 0.3)) return;
+  if (playCombatSample('gun', 1, pan * 0.6, 0.55)) return;
   const t = ac.currentTime + 0.002, r = rand(0.92, 1.08);
   const out = outChain(0.95, pan * 0.6, 0.55);
   const sh = ac.createWaveShaper(); sh.curve = A.shaper; sh.connect(out);
@@ -682,6 +729,7 @@ let tinkBudget = 0;
 function sfxTink(v = 1, pan = 0) {
   if (tinkBudget > 3 || !sfxGate(0, 0.17)) return;
   tinkBudget++;
+  if (playCombatSample('tink', v, pan * 0.5, 0)) return;
   const t = ac.currentTime, r = rand(0.88, 1.12);
   const out = outChain(0.17 * v, pan * 0.5, 0);
   for (const [f, d, a] of [[3150, 0.16, 1], [6820, 0.07, 0.5]]) {
@@ -707,6 +755,7 @@ function sfxItemPickup() {
 }
 function sfxFlesh(v = 1, pan = 0) {
   if (!sfxGate(1, 0.14)) return;
+  if (playCombatSample('flesh', v, pan * 0.5, 0)) return;
   const t = ac.currentTime + 0.004;
   const out = outChain(0.85 * v, pan * 0.5, 0.18);
   const n = noiseN(rand(0.7, 0.9)); const lp = filt('lowpass', 1100, 1.4); const g = gainN(0);
@@ -719,6 +768,7 @@ function sfxFlesh(v = 1, pan = 0) {
 }
 function sfxSplat(v = 1, pan = 0) {
   if (!sfxGate(0, 0.1)) return;
+  if (playCombatSample('splat', v, pan * 0.5, 0)) return;
   const t = ac.currentTime;
   const out = outChain(0.45 * v, pan * 0.5, 0);
   for (let i = 0; i < 2; i++) {
@@ -729,6 +779,7 @@ function sfxSplat(v = 1, pan = 0) {
 }
 function sfxFall(v = 1, pan = 0) {
   if (!sfxGate(0, 0.22)) return;
+  if (playCombatSample('fall', v, pan * 0.5, 0)) return;
   const t = ac.currentTime;
   const out = outChain(0.75 * v, pan * 0.5, 0);
   for (const [dt, a] of [[0, 1]]) {
@@ -740,6 +791,7 @@ function sfxFall(v = 1, pan = 0) {
 }
 function sfxStab(pan = 0, v = 1) {
   if (!sfxGate(v >= 1 ? 2 : 1, 0.2)) return;
+  if (playCombatSample('stab', v, pan * 0.4, 0)) return;
   const t = ac.currentTime;
   const out = outChain(0.9 * v, pan * 0.4, 0.2);
   // 휙
@@ -758,6 +810,7 @@ function sfxStab(pan = 0, v = 1) {
 // 붙잡히는 소리: 몸이 부딪히는 '쿵' + 옷을 움켜쥐는 '부스럭' + 짧은 '헉'. 저음만으로는 휴대폰 스피커에서 안 들려서 중역을 같이 넣는다.
 function sfxGrab(pan = 0, v = 1) {
   if (!sfxGate(v >= 1 ? 2 : 0, 0.18)) return;
+  if (playCombatSample('grab', v, pan * 0.5, 0)) return;
   const t = ac.currentTime;
   const out = outChain(1.0 * v, pan * 0.5, 0.12);
   const n = noiseN(0.5); const lp = filt('lowpass', 700, 1); const g = gainN(0);
@@ -772,6 +825,7 @@ function sfxGrab(pan = 0, v = 1) {
 // 방망이 휘두르는 바람 소리
 function sfxSwing(pan = 0, v = 1) {
   if (!sfxGate(0, 0.25)) return;
+  if (playCombatSample('swing', v, pan * 0.5, 0)) return;
   const t = ac.currentTime;
   const out = outChain(0.42 * v, pan * 0.5, 0);
   const n = noiseN(rand(0.9, 1.1)); const bp = filt('bandpass', 450, 1.6);
@@ -782,6 +836,7 @@ function sfxSwing(pan = 0, v = 1) {
 // 방망이에 맞는 소리: 나무 '딱' + 몸 '퍽'
 function sfxBat(pan = 0, v = 1) {
   if (!sfxGate(1, 0.18)) return;
+  if (playCombatSample('bat', v, pan * 0.5, 0.3)) return;
   const t = ac.currentTime + 0.002;
   const out = outChain(0.95 * v, pan * 0.5, 0.3);
   const o = oscN('triangle', 980 * rand(0.93, 1.07)); const g = gainN(0); envAD(g.gain, t, 0.0008, 0.55, 0.06);
@@ -1054,7 +1109,7 @@ function renderMusicBuffer() {
   for (let t = 1; t < dur - 0.05; t += 1) {
     off.suspend(t).then(() => { schedUntil(t + 1.2); off.resume(); });
   }
-  const done = (buf) => { if (buf && buf.duration > 0) { MUSIC_BUF = buf; musicHandoff(); } musicRendering = false; setTimeout(renderBdayBuffers, 600); };
+  const done = (buf) => { if (buf && buf.duration > 0) { MUSIC_BUF = buf; musicHandoff(); } musicRendering = false; };
   const p = off.startRendering();
   if (p && p.then) p.then(done, () => { musicRendering = false; });
   else off.oncomplete = (e) => done(e.renderedBuffer);
@@ -1107,7 +1162,7 @@ function musicStop(hard) {
 // 지금 몇 번째 16분음표인지 (다시 짤 때 이어서 틀기용)
 function musicNowStep() { return MU.src ? MU.from + Math.max(0, Math.floor((ac.currentTime - MU.t0) / S16)) : MU.step; }
 function musicTick() {
-  if (!MU.on || !ac || MU.src) return;
+  if (!MU.on || !ok() || MU.src || (!OFFLINE && G.paused)) return;
   if (MU.next < ac.currentTime - 0.03) {
     const skip = Math.ceil((ac.currentTime - MU.next) / S16);
     MU.step += skip; MU.next += skip * S16;
@@ -3384,7 +3439,7 @@ function overT() { return Math.max(0, G.playT - OVER_T); }
 const F_KEYS = ['f_F1', 'f_F2', 'f_F3', 'f_F4', 'f_F5', 'f_M2', 'f_M3', 'f_M4', 'f_M5'];
 const G_KEYS = ['g_F1', 'g_F3', 'g_F5', 'g_M2', 'g_M4'];
 const N_KEYS = ['n_F2', 'n_M3', 'n_F4', 'n_M4'];
-const MAXV = 6;
+let nextCrowdVoice = 0;
 
 const persons = [];       // 움직이는 묶음의 인스턴스 번호 = 배열 번호
 const live = [];          // 아직 정지하지 않은 사람 (죽는 중 포함)
@@ -3744,12 +3799,15 @@ function speechTick(p, dt, d) {
   const cling = p.state === 'cling', mine = p.host === ME;
   p.speakCD = cling ? rand(2.4, 4.8) : rand(1.5, 4.0) * (d > 7 ? 1.5 : 1);
   if (p.vo && !p.vo.stopped) return;
-  if (d > 14 || voicesPlaying() >= MAXV) return;
+  if (d > 14 || !ok() || MUTED || ac.currentTime < nextCrowdVoice) return;
+  const speaking = voicesPlaying();
+  if (speaking >= (IS_TOUCH ? 3 : 4) || (d > 8 && speaking >= 2)) return;
   const vol = cling && mine ? 0.5 : clamp(1.2 - d * 0.075, 0.28, 1) * (cling ? 0.7 : 1);
   const pan = screenPan(p.x, p.z);
   const key = cling ? p.voiceKey.replace(/^g_/, 'f_') : p.voiceKey;
   const h = playVoice(VO[key] ? key : p.voiceKey, { rate: p.vrate * (cling ? 0.96 : 1), gain: vol, pan, sob: cling ? 0.012 : 0.028, lp: cling && mine ? 2600 : (d > 8 ? 2200 : 0) });
   if (!h) return;
+  nextCrowdVoice = ac.currentTime + 0.12;
   p.vo = h;
   if (p.bubble && p.bubble.plea && !p.bubble.ending && p.bubble.t < 0.05) { p.bubble.voice = h; p.bubble.dur = h.dur; }
   p.socialPlea = false;
@@ -5236,16 +5294,14 @@ function hideSub() { $('sub').hidden = true; }
 
 // 친구를 새로 사귀면 화면 위에 SNS 알림처럼
 const toastEl = $('toast');
-let toastTimer = 0;
 function showToast() {
   noticeFriendship();
   toastEl.hidden = false;
   toastEl.classList.remove('show'); void toastEl.offsetWidth; toastEl.classList.add('show');
   sfxChime();
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { toastEl.hidden = true; toastEl.classList.remove('show'); }, 3300);
 }
-function hideToast() { clearTimeout(toastTimer); toastEl.hidden = true; toastEl.classList.remove('show'); }
+function hideToast() { toastEl.hidden = true; toastEl.classList.remove('show'); }
+toastEl.addEventListener('animationend', (e) => { if (e.animationName === 'toast') hideToast(); });
 // 알림을 누르면 사라짐. 누른 손가락이 밑의 소리 버튼까지 누르지 않게 click에서 닫는다
 toastEl.addEventListener('pointerdown', (e) => { e.stopPropagation(); });
 toastEl.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); hideToast(); });
@@ -5359,7 +5415,7 @@ window.addEventListener('pointerdown', (e) => {
   if (e.pointerType === 'touch' && !IS_TOUCH) { IS_TOUCH = true; document.body.classList.remove('desk'); const h = $('hint'); if (!h.hidden) h.classList.remove('keys'); }
 }, true);
 canvas.addEventListener('pointerdown', (e) => {
-  if (!G.ctrl || stickId !== null) return;
+  if (G.paused || !G.ctrl || stickId !== null) return;
   if (e.pointerType === 'mouse' && e.button !== 0) return;
   stickId = e.pointerId; sx0 = e.clientX; sy0 = e.clientY;
   try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
@@ -5377,6 +5433,7 @@ const weaponEl = $('weapon');
 let weaponId = null;
 weaponEl.addEventListener('pointerdown', (e) => {
   e.preventDefault(); e.stopPropagation();
+  if (G.paused) return;
   weaponId = e.pointerId;
   try { weaponEl.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
   weaponEl.classList.add('down');
@@ -5397,7 +5454,12 @@ function keysToVec() {
   if (l) gotMove();
 }
 window.addEventListener('keydown', (e) => {
-  if (e.repeat && !MOVE_KEYS[e.code]) return;
+  if ((e.code === 'Escape' || e.code === 'KeyP') && canPause()) {
+    e.preventDefault();
+    if (!e.repeat) setGamePaused(!pauseDialog.open);
+    return;
+  }
+  if (G.paused || e.repeat || (e.target === pauseBtn && FIRE_KEYS.has(e.code))) return;
   if (MOVE_KEYS[e.code]) { KEYS.add(e.code); keysToVec(); e.preventDefault(); }
   else if (FIRE_KEYS.has(e.code)) {
     if (G.state === 'play') { e.preventDefault(); if (!e.repeat) { weaponEl.classList.add('down'); weaponDown(); } }
@@ -6373,7 +6435,7 @@ function cakeVisible() {
   const want = BD.ready && BD.left > 0 && G.state === 'play' && !BD.on;
   if (want === cakeEl.hidden) { cakeEl.hidden = !want; if (!want) cakeEl.classList.remove('down'); }
 }
-cakeEl.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); cakeEl.classList.add('down'); bdayStart(); });
+cakeEl.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); if (G.paused) return; cakeEl.classList.add('down'); bdayStart(); });
 for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) cakeEl.addEventListener(ev, () => cakeEl.classList.remove('down'));
 function bdayCheckReady() {
   if (BD.ready || BD.left <= 0 || G.state !== 'play') return;
@@ -7408,7 +7470,7 @@ function showCert(id) {
 }
 function stampIt(stampId, certId) {
   const st = $(stampId); st.classList.remove('hit'); void st.offsetWidth; st.classList.add('hit');
-  setTimeout(() => { sfxStamp(); const c = $(certId).querySelector('.cert'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake'); }, 120);
+  runSeq([[0.12, () => { sfxStamp(); const c = $(certId).querySelector('.cert'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake'); }]]);
 }
 function drop() {
   SEQ = [];
@@ -7712,7 +7774,7 @@ window.addEventListener('pointerdown', (e) => {
   resumeFromHouse();
 }, true);
 window.addEventListener('keydown', (e) => {
-  if (G.state !== 'back' || e.repeat) return;
+  if (G.state !== 'back' || G.paused || e.repeat) return;
   if (/^(KeyM|Tab|Shift|Control|Alt|Meta|Escape|F\d)/.test(e.code)) return;
   resumeFromHouse();
 }, true);
@@ -7790,6 +7852,8 @@ function frame(now) {
   bdayTick(dt);
   const gdt = BD.on ? dt * BD.ts : dt;
   if (gdt > 0) { const steps = Math.ceil(gdt / 0.05), tick = gdt / steps; for (let i = 0; i < steps; i++) simulate(tick); }
+  const showPause = canPause();
+  if (pauseBtn.hidden === showPause) pauseBtn.hidden = !showPause;
   animate(gdt);
   camUpdate(dt);
   updateBubbles(dt);
@@ -7810,12 +7874,46 @@ const QSTEPS = [
 let qStep = 0;
 function setPR(v) { if (PR <= v) return false; PR = v; onResize(); return true; }
 function lowerQuality() { while (qStep < QSTEPS.length) { if (QSTEPS[qStep++]()) return; } }
-// 소리가 멈춰 있으면 화면을 만질 때마다 다시 켬
-for (const ev of ['pointerdown', 'keydown', 'touchend']) window.addEventListener(ev, () => audioPoke(), true);
+const pauseBtn = $('pauseBtn'), pauseDialog = $('pause');
+function canPause() {
+  return G.state === 'intro' || G.state === 'play' || G.state === 'over' || G.state === 'ending';
+}
+function releaseGameInputs() {
+  KEYS.clear(); keysToVec(); weaponUp();
+  if (stickId !== null && canvas.hasPointerCapture(stickId)) canvas.releasePointerCapture(stickId);
+  if (weaponId !== null && weaponEl.hasPointerCapture(weaponId)) weaponEl.releasePointerCapture(weaponId);
+  stickId = weaponId = null;
+  G.stick.x = G.stick.z = G.input.x = G.input.z = 0;
+  stickEl.hidden = true;
+  weaponEl.classList.remove('down'); cakeEl.classList.remove('down');
+}
+function syncPause() {
+  G.paused = pauseDialog.open || document.hidden || !!HOUSE.enter?.gone;
+  document.body.classList.toggle('bgpause', G.paused);
+  lastNow = performance.now();
+  if (!ac) return;
+  if (G.paused) ac.suspend().catch(() => {});
+  else if (G.state !== 'title' || !MUTED) ac.resume().catch(() => {});
+}
+function setGamePaused(on) {
+  if (on) {
+    if (pauseDialog.open || !canPause()) return;
+    releaseGameInputs();
+    pauseDialog.showModal();
+  } else {
+    if (!pauseDialog.open || document.hidden) return;
+    pauseDialog.close();
+    canvas.focus({ preventScroll: true });
+  }
+  syncPause();
+}
+pauseBtn.addEventListener('click', () => setGamePaused(true));
+$('resume').addEventListener('click', () => setGamePaused(false));
+pauseDialog.addEventListener('cancel', e => { e.preventDefault(); setGamePaused(false); });
+for (const ev of ['pointerdown', 'keydown', 'touchend']) window.addEventListener(ev, audioPoke, true);
 document.addEventListener('visibilitychange', () => {
-  document.body.classList.toggle('bgpause', document.hidden);
-  if (document.hidden) { G.paused = true; if (ac && ac.state === 'running') ac.suspend(); }
-  else { G.paused = false; lastNow = performance.now(); if (ac && G.state !== 'title') ac.resume(); }
+  if (document.hidden && canPause() && !pauseDialog.open) setGamePaused(true);
+  else syncPause();
 });
 
 // 시작 준비: 글꼴을 기다렸다가 버튼 활성화
