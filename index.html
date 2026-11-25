@@ -4865,7 +4865,6 @@ const ALLY_DEFS = [
 ];
 const ALLY_AT = [14, 38, 62, 86];            // 갇힌 동료가 나타나는 시각
 const ALLY_GAP = 10;                          // 앞 동료와 하이파이브한 뒤 최소 간격
-const ALLY_LAST = 116;                        // 고시원 첫 방문 전의 등장 마감
 const ALLY_DIR = [0.55, -0.7, -0.2, 0.95];    // 나타나는 방향 (0 = 화면 위쪽). 세로 화면에서도 멀리서 보이게 위쪽 위주
 const LINE = [[0.62, -0.5], [-0.62, -0.5], [1.2, -1.0], [-1.2, -1.0]];     // 마지막 장면 자리
 // 싸울 때: 내 주위를 둘러싸고 바깥을 보며 다가오는 사람을 막는다
@@ -5001,7 +5000,7 @@ const allyVol = (a) => clamp(1.25 - Math.hypot(a.x - ME.x, a.z - ME.z) * 0.07, 0
 // ── 등장: 사람들에게 둘러싸여 붙잡힌 채로 ──
 function allySpawnUpdate() {
   if (G.allyNext >= ALLIES.length) return;
-  if (G.playT < G.allyT || (!HOUSE.used && G.playT > ALLY_LAST)) return;
+  if (G.playT < G.allyT) return;
   if (ALLIES.some((a) => a.state === 'trapped' || a.state === 'freed' || a.state === 'five')) return;
   spawnTrapped(ALLIES[G.allyNext]);
   G.allyNext++;
