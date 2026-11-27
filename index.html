@@ -855,6 +855,103 @@ function sfxBat(pan = 0, v = 1) {
   const n2 = noiseN(0.6); const lp = filt('lowpass', 900, 1); const g5 = gainN(0); envAD(g5.gain, t + 0.004, 0.002, 0.7, 0.08);
   n2.connect(lp).connect(g5).connect(out); n2.start(t, rand(0, 2)); n2.stop(t + 0.12);
 }
+// ── 친구가 주워 든 무기 소리 ──
+// 빈 산탄총 개머리판에 맞는 소리: 쇠 '깡!' + 몸 '퍽'
+function sfxClubHit(pan = 0, v = 1) {
+  if (!sfxGate(1, 0.3)) return;
+  const t = ac.currentTime + 0.002;
+  const out = outChain(0.95 * v, pan * 0.5, 0.32);
+  const f0 = 520 * rand(0.94, 1.06);
+  // 쇠막대 울림 (비조화 배음)
+  [[1, 0.24, 0.3], [2.76, 0.17, 0.24], [5.4, 0.1, 0.14], [8.93, 0.06, 0.08]].forEach(([m, d, a]) => {
+    const o = oscN('sine', f0 * m); const g = gainN(0); envAD(g.gain, t, 0.0006, a, d);
+    o.connect(g).connect(out); o.start(t); o.stop(t + d + 0.03);
+  });
+  const n = noiseN(1.3); const hp = filt('highpass', 3200, 0.8); const g1 = gainN(0); envAD(g1.gain, t, 0.0005, 0.75, 0.018);
+  n.connect(hp).connect(g1).connect(out); n.start(t, rand(0, 2)); n.stop(t + 0.04);
+  const b = oscN('sine', 150); b.frequency.setValueAtTime(160, t); b.frequency.exponentialRampToValueAtTime(46, t + 0.15);
+  const g2 = gainN(0); envAD(g2.gain, t, 0.002, 1.05, 0.17); b.connect(g2).connect(out); b.start(t); b.stop(t + 0.22);
+  const n2 = noiseN(0.6); const lp = filt('lowpass', 950, 1); const g3 = gainN(0); envAD(g3.gain, t + 0.004, 0.002, 0.7, 0.09);
+  n2.connect(lp).connect(g3).connect(out); n2.start(t, rand(0, 2)); n2.stop(t + 0.13);
+}
+// 빈 로켓 발사관에 맞는 소리: 속 빈 쇠통 '텅~' + 묵직한 '쿵'
+function sfxTubeHit(pan = 0, v = 1) {
+  if (!sfxGate(1, 0.42)) return;
+  const t = ac.currentTime + 0.002;
+  const out = outChain(0.9 * v, pan * 0.5, 0.45);
+  const f0 = 232 * rand(0.95, 1.05);
+  // 관 울림: 맞는 순간 살짝 높았다가 내려앉음
+  [[1, 0.36, 0.42], [2.03, 0.26, 0.26], [3.1, 0.16, 0.14], [4.6, 0.09, 0.07]].forEach(([m, d, a]) => {
+    const o = oscN('sine', f0 * m); o.frequency.setValueAtTime(f0 * m * 1.04, t); o.frequency.exponentialRampToValueAtTime(f0 * m, t + 0.08);
+    const g = gainN(0); envAD(g.gain, t, 0.001, a, d); o.connect(g).connect(out); o.start(t); o.stop(t + d + 0.04);
+  });
+  const n = noiseN(1.0); const bp = filt('bandpass', f0 * 1.5, 7); const g1 = gainN(0); envAD(g1.gain, t, 0.001, 1.1, 0.2);
+  n.connect(bp).connect(g1).connect(out); n.start(t, rand(0, 2)); n.stop(t + 0.24);
+  const n3 = noiseN(1.2); const bp3 = filt('bandpass', 2300, 1.4); const g4 = gainN(0); envAD(g4.gain, t, 0.0005, 0.6, 0.02);
+  n3.connect(bp3).connect(g4).connect(out); n3.start(t, rand(0, 2)); n3.stop(t + 0.04);
+  const b = oscN('sine', 120); b.frequency.setValueAtTime(128, t); b.frequency.exponentialRampToValueAtTime(36, t + 0.24);
+  const g2 = gainN(0); envAD(g2.gain, t, 0.002, 1.25, 0.26); b.connect(g2).connect(out); b.start(t); b.stop(t + 0.32);
+  const n2 = noiseN(0.5); const lp = filt('lowpass', 650, 1); const g3 = gainN(0); envAD(g3.gain, t + 0.005, 0.003, 0.85, 0.14);
+  n2.connect(lp).connect(g3).connect(out); n2.start(t, rand(0, 2)); n2.stop(t + 0.18);
+}
+// 발사관을 크게 휘두르는 바람 소리 (방망이보다 낮고 길게, 맞는 순간에 가장 셈)
+function sfxBigSwing(pan = 0, v = 1) {
+  if (!sfxGate(0, 0.5)) return;
+  const t = ac.currentTime;
+  const out = outChain(0.45 * v, pan * 0.5, 0);
+  const n = noiseN(rand(0.85, 1.0)); const bp = filt('bandpass', 240, 1.4);
+  bp.frequency.setValueAtTime(220, t); bp.frequency.exponentialRampToValueAtTime(380, t + 0.2); bp.frequency.exponentialRampToValueAtTime(1500, t + 0.38); bp.frequency.exponentialRampToValueAtTime(520, t + 0.5);
+  const g = gainN(0); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.18); g.gain.exponentialRampToValueAtTime(1.0, t + 0.37); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.52);
+  n.connect(bp).connect(g).connect(out); n.start(t, rand(0, 2)); n.stop(t + 0.54);
+}
+// 버려진 총을 줍는 소리 '철컥'
+function sfxPickGun(pan = 0, v = 1, heavy = false) {
+  if (!sfxGate(1, 0.25)) return;
+  const t = ac.currentTime + 0.005;
+  sfxClickAt(t, heavy ? 1700 : 2500, 0.3 * v, 0.03, 6); sfxClickAt(t + 0.075, heavy ? 1300 : 1850, 0.24 * v, 0.035, 5);
+  const out = outChain((heavy ? 0.4 : 0.25) * v, pan * 0.5, 0.15);
+  const o = oscN('sine', heavy ? 210 : 320); o.frequency.exponentialRampToValueAtTime(heavy ? 120 : 190, t + 0.12);
+  const g = gainN(0); envAD(g.gain, t, 0.002, 0.6, 0.12); o.connect(g).connect(out); o.start(t); o.stop(t + 0.16);
+}
+// 방망이를 줍는 소리: 나무 '똑'
+function sfxPickBat(pan = 0, v = 1) {
+  if (!sfxGate(1, 0.12)) return;
+  const t = ac.currentTime + 0.004;
+  const out = outChain(0.34 * v, pan * 0.5, 0.1);
+  const o = oscN('triangle', 1150 * rand(0.95, 1.05)); const g = gainN(0); envAD(g.gain, t, 0.0008, 0.5, 0.05);
+  o.connect(g).connect(out); o.start(t); o.stop(t + 0.08);
+  const n = noiseN(1.1); const bp = filt('bandpass', 2400, 2.2); const g2 = gainN(0); envAD(g2.gain, t, 0.0006, 0.5, 0.02);
+  n.connect(bp).connect(g2).connect(out); n.start(t, rand(0, 2)); n.stop(t + 0.04);
+}
+// 던진 방망이가 바닥에 떨어져 구르는 소리: '따각-딱'
+function sfxBatClatter(pan = 0, v = 1) {
+  if (!sfxGate(1, 0.3)) return;
+  const t = ac.currentTime + 0.003;
+  const out = outChain(0.4 * v, pan * 0.5, 0.18);
+  [[0, 1, 1060], [0.085, 0.7, 1320], [0.14, 0.45, 980], [0.18, 0.25, 1240]].forEach(([d, a, f]) => {
+    const o = oscN('triangle', f * rand(0.94, 1.06)); const g = gainN(0); envAD(g.gain, t + d, 0.0006, 0.55 * a, 0.045);
+    o.connect(g).connect(out); o.start(t + d); o.stop(t + d + 0.07);
+    const n = noiseN(1.2); const bp = filt('bandpass', 2600, 2.4); const g2 = gainN(0); envAD(g2.gain, t + d, 0.0005, 0.6 * a, 0.018);
+    n.connect(bp).connect(g2).connect(out); n.start(t + d, rand(0, 2)); n.stop(t + d + 0.035);
+  });
+  const b = oscN('sine', 190); b.frequency.exponentialRampToValueAtTime(110, t + 0.08); const g3 = gainN(0); envAD(g3.gain, t, 0.002, 0.5, 0.08);
+  b.connect(g3).connect(out); b.start(t); b.stop(t + 0.12);
+}
+// 빈 발사관을 바닥에 떨어뜨리는 소리: 속 빈 쇠통 '텅, 텅'
+function sfxTubeDrop(pan = 0) {
+  if (!sfxGate(1, 0.62)) return;
+  const t = ac.currentTime + 0.12;
+  const out = outChain(0.36, pan * 0.5, 0.3);
+  [[0, 1], [0.16, 0.5]].forEach(([d, a]) => {
+    const o = oscN('sine', 236); o.frequency.setValueAtTime(250, t + d); o.frequency.exponentialRampToValueAtTime(228, t + d + 0.1);
+    const g = gainN(0); envAD(g.gain, t + d, 0.001, 0.5 * a, 0.26 * a + 0.05); o.connect(g).connect(out); o.start(t + d); o.stop(t + d + 0.36);
+    const n = noiseN(0.8); const bp = filt('bandpass', 360, 6); const g2 = gainN(0); envAD(g2.gain, t + d, 0.001, 0.9 * a, 0.15);
+    n.connect(bp).connect(g2).connect(out); n.start(t + d, rand(0, 2)); n.stop(t + d + 0.2);
+    sfxClickAt(t + d + 0.005, 1900, 0.2 * a, 0.03, 5);
+  });
+  const b = oscN('sine', 140); b.frequency.setValueAtTime(150, t); b.frequency.exponentialRampToValueAtTime(55, t + 0.14); const g3 = gainN(0); envAD(g3.gain, t, 0.002, 0.7, 0.14);
+  b.connect(g3).connect(out); b.start(t); b.stop(t + 0.2);
+}
 // 하이파이브 '짝!'
 function sfxClap() {
   if (!sfxGate(3, 0.15)) return;
@@ -1428,7 +1525,8 @@ async function audioOfflineTest(sec, events) {
   const fns = { gun: () => sfxGun(0), flesh: () => sfxFlesh(1), fall: () => sfxFall(1), stab: () => sfxStab(0), grab: () => sfxGrab(0), stamp: () => sfxStamp(), sparkle: () => sfxSparkle(1), impact: () => sfxImpact(ac.currentTime), tink: () => sfxTink(1), type: () => sfxType(), splat: () => sfxSplat(1),
     swing: () => sfxSwing(0), bat: () => sfxBat(0), clap: () => sfxClap(), chime: () => sfxChime(), pickup: () => sfxItemPickup(), pno: () => playVoice('p_no', { verb: 0.12 }), heart: () => sfxHeart(1),
     voice: (k) => playVoice(k || 'f_F2', { sob: 0.028 }), pline: () => playVoice('p_line', { verb: 0.12 }), music: () => { musicStart(ac.currentTime + 0.01, 32); }, musicStop: () => musicStop(true),
-    sgun: () => sfxShotgunOut(0), pump: () => sfxPumpOut(0), gdrop: () => sfxGunDrop(0, 0.05), slam: () => sfxDoorSlamOut() };
+    sgun: () => sfxShotgunOut(0), pump: () => sfxPumpOut(0), gdrop: () => sfxGunDrop(0, 0.05), slam: () => sfxDoorSlamOut(),
+    club: () => sfxClubHit(0), tube: () => sfxTubeHit(0), bigswing: () => sfxBigSwing(0), pickgun: () => sfxPickGun(0, 1, false), pickgunh: () => sfxPickGun(0, 1, true), pickbat: () => sfxPickBat(0), clatter: () => sfxBatClatter(0), tubedrop: () => sfxTubeDrop(0) };
   // 같은 시각(렌더 단위)에 suspend를 두 번 걸 수 없어서 묶어서 건다
   const groups = new Map();
   const q = (t) => Math.round(t * 44100 / 128);
@@ -2623,7 +2721,7 @@ function makeOutShotgun() {
   holder.add(g); g.visible = false;
   SG.model = g; SG.pump = pump; SG.pumpZ = pump.position.z;
 }
-const streetRocket = { rounds: 0, cooldown: 0, model: null, projectile: null, target: new THREE.Vector3(), flash: null, flashT: 0 };
+const streetRocket = { rounds: 0, cooldown: 0, model: null, projectile: null, target: new THREE.Vector3(), flash: null, flashT: 0, dropT: 0 };
 function equipStreetRockets(rounds) {
   const r = streetRocket;
   r.rounds = clamp(rounds | 0, 0, 99);
@@ -2637,7 +2735,8 @@ function equipStreetRockets(rounds) {
     r.flash = new THREE.Sprite(new THREE.SpriteMaterial({ map: flashTex, color: '#ffb143', transparent: true, depthWrite: false }));
     r.flash.visible = false; scene.add(r.flash);
   }
-  if (r.model) r.model.visible = r.rounds > 0;
+  r.dropT = 0;
+  if (r.model) { r.model.visible = r.rounds > 0; r.model.userData.head.visible = true; }
   weaponEl.classList.toggle('rkon', r.rounds > 0); sgBadge(false);
 }
 function sgDropAt(x, z, y0) {
@@ -2685,6 +2784,39 @@ const H_MAT = {
   head: atlasMat(allyFaceTex, 'aFace', 0.25, 0.5, 'ally-head-v1'),
   badge: atlasMat(allyBadgeTex, 'aBadge', 1, 0.5, 'ally-badge-v1'),
 };
+// 1급이 다 쓰고 버린 무기를 친구 손에 쥐어 줄 모양으로 굳힌다 (꼭짓점 색 한 덩어리).
+// 긴 축(z)의 zGrip 지점을 쥐고, 반대쪽 끝이 +y로 뻗게 놓은 뒤 방망이와 같은 식으로 팔 앞쪽으로 들어 올림.
+const HELD_OUT = {};
+function heldWeaponGeo(g, { zGrip, flip, s, lift, skip }) {
+  g.updateMatrixWorld(true);
+  const parts = [], mats = new Set();
+  g.traverse((m) => {
+    if (!m.isMesh) return;
+    if (m.material && m.material.isMaterial && m.material !== OUT_MAT) mats.add(m.material);
+    if (m.material === OUT_MAT || m.material === HELD_OUT || (skip && skip(g, m))) return;
+    const geo = m.geometry.clone().applyMatrix4(m.matrixWorld);
+    paint(geo, m.material.color);
+    parts.push(geo);
+  });
+  for (const mt of mats) mt.dispose();
+  const geo = mergeGeos(parts);
+  geo.translate(0, 0, -zGrip);
+  geo.rotateX(flip * Math.PI / 2);
+  geo.scale(s, s, s);
+  geo.rotateX(Math.PI - lift); geo.translate(0, -0.035, 0.01);
+  return geo;
+}
+function heldSkipHead(g, m) { for (let n = m; n; n = n.parent) if (n === g.userData.head) return true; return false; }
+// 던져서 바닥에 떨어진 방망이 (누운 방향: z축, 가운데가 원점)
+function makeLooseBatGeo() {
+  const grip = new THREE.CylinderGeometry(0.018, 0.019, 0.2, 8); grip.translate(0, 0.1, 0);
+  const knob = new THREE.CylinderGeometry(0.028, 0.026, 0.022, 8); knob.translate(0, -0.008, 0);
+  const barrel = new THREE.CylinderGeometry(0.043, 0.02, 0.44, 10); barrel.translate(0, 0.42, 0);
+  const tip = G3.sphere(0.043, 10, 6); tip.scale(1, 0.55, 1); tip.translate(0, 0.64, 0);
+  const g = mergeGeos([paint(grip, '#2b2b33'), paint(knob, '#2b2b33'), paint(barrel, '#d8a057'), paint(tip, '#d8a057')]);
+  g.translate(0, -0.33, 0); g.rotateX(Math.PI / 2);
+  return g;
+}
 const H_GEO = (() => {
   const r = M.HEAD_R, front = Math.PI / 2;
   const torso = G3.cap(0.175, 0.12, 14); torso.rotateY(Math.PI); torso.scale(1.2, 1, 0.82); torso.translate(0, 0.215, 0);
@@ -2744,7 +2876,10 @@ const H_GEO = (() => {
   const blade = paint(knifeGeo(), '#e6eaef'); blade.rotateX(Math.PI / 2); blade.translate(0, 0, 0.03); blade.rotateX(Math.PI / 2); blade.translate(0, -0.04, 0);
   const handle = paint(new THREE.BoxGeometry(0.03, 0.1, 0.034), '#1b1a1f'); handle.translate(0, -0.05, 0); handle.rotateX(Math.PI / 2); handle.translate(0, 0, 0.03); handle.rotateX(Math.PI / 2); handle.translate(0, -0.04, 0);
   const knife = mergeGeos([blade, handle]);
-  return { torso, collar, badge, hips, head, hairA, hairB, uarm, farm, hand, thigh, shin, shoe, bat, knife };
+  // 주워 든 빈 산탄총 (총열 끝을 쥐고 개머리판으로 팸), 주워 든 빈 로켓 발사관 (앞쪽을 쥐고 통째로 휘두름)
+  const sgclub = heldWeaponGeo(makeOutShotgun().g, { zGrip: 0.76, flip: 1, s: 0.86, lift: 0.61 });
+  const tube = heldWeaponGeo(buildRocketModel(THREE, (c) => ({ color: new THREE.Color(c) }), HELD_OUT, rocketWarheadGeo(THREE, mergeGeos)), { zGrip: -0.53, flip: -1, s: 0.98, lift: 0.61, skip: heldSkipHead });
+  return { torso, collar, badge, hips, head, hairA, hairB, uarm, farm, hand, thigh, shin, shoe, bat, knife, sgclub, tube };
 })();
 // [이름, 지오메트리, 재질, 노드, 윤곽선, 색 종류, 켜고 끄기]
 const H_DEFS = [
@@ -2763,6 +2898,9 @@ const H_DEFS = [
   ['shoeL', 'shoe', 'vc', 'anL', true, null, null], ['shoeR', 'shoe', 'vc', 'anR', true, null, null],
   ['bat', 'bat', 'vc', 'wrR', true, null, 'bat'],
   ['knife', 'knife', 'vc', 'wrL', true, null, 'knife'],
+  ['sgclub', 'sgclub', 'vc', 'wrR', true, null, 'sgclub'],
+  ['tube', 'tube', 'vc', 'wrR', true, null, 'tube'],
+  ['batL', 'bat', 'vc', 'wrL', true, null, 'batL'],
 ];
 const HS = (() => {
   const set = { parts: [] };
@@ -4044,7 +4182,10 @@ function spawnAngle(north = 0.72) {
 // 동료가 늘면 조금 더 몰려오지만, 구조 보상을 삼키는 급격한 증가는 피한다. 한 화면에 100명까지.
 // 붙잡혀 손을 못 쓰는 친구는 세지 않는다 (도움도 못 주는데 사람만 더 오는 일이 없게)
 function squadN() { let n = 0; for (const a of ALLIES) if ((a.state === 'fight' || a.state === 'five' || a.state === 'freed') && !a.pinned) n++; return n; }
-function maxAlive() { return Math.min(100, MAX_ALIVE + 12 * squadN() + overT() * 0.25); }
+// 주운 무기로 세진 만큼 더 몰려온다 (방망이 하나 든 친구 = 1)
+function allyPower(a) { return 1 + (a.wr === 'tube' ? 0.75 : a.wr === 'sg' ? 0.5 : 0) + (a.wl === 'bat' ? 0.4 : 0); }
+function squadW() { let n = 0; for (const a of ALLIES) if ((a.state === 'fight' || a.state === 'five' || a.state === 'freed') && !a.pinned) n += allyPower(a); return n; }
+function maxAlive() { return Math.min(100, MAX_ALIVE + 12 * squadW() + overT() * 0.25); }
 function waveNow(T) {
   const w = WAVES.find((x) => T >= x.t0 && T < x.t1);
   if (w) return w;
@@ -4052,7 +4193,7 @@ function waveNow(T) {
   return { every: Math.max(0.3, 0.62 - o * 0.006), run: Math.min(0.9, 0.78 + o * 0.003), north: Math.max(0.3, 0.4 - o * 0.003) };
 }
 function spawnRing(n0) {
-  const n = Math.round(n0 * (1 + 0.2 * squadN())), a0 = rand(0, TAU);   // 친구 몫만큼만 더 (친구를 구하자마자 밀리지 않게)
+  const n = Math.round(n0 * (1 + 0.2 * squadW())), a0 = rand(0, TAU);   // 친구 몫만큼만 더 (친구를 구하자마자 밀리지 않게)
   const near = lerp(14, 11.5, Math.min(1, overT() / 45));
   for (let k = 0; k < n; k++) {
     if (aliveCount >= maxAlive()) break;
@@ -4118,7 +4259,7 @@ function spawnUpdate(dt) {
   if (G.ringNext >= RINGS.length && T >= G.ringT) { spawnRing(26 + overT() * 0.45); G.ringT += 10; }
   const w = waveNow(T);
   const friends = squadN();
-  G.spawnAcc += dt * (1 + 0.3 * friends);
+  G.spawnAcc += dt * (1 + 0.3 * squadW());
   if (G.spawnAcc >= w.every) { G.spawnAcc -= w.every; spawnOne(Math.random() < w.run ? 1 : 0, spawnAngle(w.north === undefined ? 0.72 : w.north)); }
   if (T >= 22) {
     G.groupAcc += dt;
@@ -4237,13 +4378,14 @@ function meAnimate(dt) {
   for (const h of [0, 1]) {
     const stabbing = ME.stab && ME.stab.hand === h;
     const fiving = ME.five && ME.five.h === h;
-    const sg = h === 1 && (SG.on || streetRocket.rounds > 0);
+    const rkHeld = streetRocket.rounds > 0 || streetRocket.dropT > 0;
+    const sg = h === 1 && (SG.on || rkHeld);
     KNIVES[h].visible = !fiving && (stabbing || (ME.clingers.length > 0 && ((h === 0 && ME.clingers.some((p) => SLOTS[p.slot].x >= 0)) || (h === 1 && ME.clingers.some((p) => SLOTS[p.slot].x < 0)))));
     GUNS[h].visible = !fiving && !KNIVES[h].visible && !sg;
     if (h === 1) {
       const available = !fiving && !KNIVES[1].visible;
-      SG.model.visible = SG.on && !streetRocket.rounds && available;
-      if (streetRocket.model) streetRocket.model.visible = streetRocket.rounds > 0 && available;
+      SG.model.visible = SG.on && !rkHeld && available;
+      if (streetRocket.model) streetRocket.model.visible = rkHeld && available;
     }
     if (fiving) {
       const f = ME.five;
@@ -4499,12 +4641,12 @@ function shoot(forced) {
   if (streetRocket.rounds && tgt && !forced && streetRocket.cooldown <= 0 && !(ME.five && ME.five.h === 1)) {
     shootStreetRocket(ax, az); return;
   }
-  if (!streetRocket.rounds && SG.on && tgt && !forced && SG.cd <= 0 && SG.dropT < 0 && !(ME.five && ME.five.h === 1)) { shootShotgunOut(ax, ay, az); return; }
+  if (!streetRocket.rounds && !(streetRocket.dropT > 0) && SG.on && tgt && !forced && SG.cd <= 0 && SG.dropT < 0 && !(ME.five && ME.five.h === 1)) { shootShotgunOut(ax, ay, az); return; }
   const relx = ax - ME.x;
   let h = relx >= 0 ? 0 : 1;
   if (G.t - ME.lastShot[h] < 0.1 && G.t - ME.lastShot[1 - h] > 0.12) h = 1 - h;
   if (ME.five && ME.five.h === h) h = 1 - h;   // 하이파이브 중인 손은 쉰다
-  if (SG.on || streetRocket.rounds) { if (ME.five && ME.five.h === 0) return; h = 0; }   // 오른손엔 산탄총
+  if (SG.on || streetRocket.rounds || streetRocket.dropT > 0) { if (ME.five && ME.five.h === 0) return; h = 0; }   // 오른손엔 산탄총
   ME.lastShot[h] = G.t; G.lastShotT = G.t;
   ME.aim[h] = 1; ME.aimPt[h].set(ax, ay, az); ME.recoil[h] = 1;
   if (!G.firedOnce) { G.firedOnce = true; $('weapon').classList.remove('pulse'); }
@@ -4526,7 +4668,7 @@ function shoot(forced) {
   sfxGun(pan);
   CAM.shake = Math.max(CAM.shake, 0.035);
 }
-function kill(p, dx, dz, how, by, quiet) {
+function kill(p, dx, dz, how, by, quiet, sv = 1) {
   if (p.state === 'dying' || p.state === 'dead') return;
   if (p.state === 'cling') { const H = p.host || ME; H.slotOcc[p.slot] = null; const k = H.clingers.indexOf(p); if (k >= 0) H.clingers.splice(k, 1); p.slot = -1; }
   p.state = 'dying'; p.how = how; p.dieT = 0; p.landed = false; p.poolPending = -1;
@@ -4534,12 +4676,14 @@ function kill(p, dx, dz, how, by, quiet) {
   const rel = Math.atan2(dx, dz) - p.yaw;
   p.back = Math.cos(rel) < 0.2;
   p.fallRoll = Math.sin(rel) * 0.5 + rand(-0.2, 0.2);
-  const bat = how === 'bat';
-  p.fallT = how === 'stab' ? 0.62 : bat ? rand(0.6, 0.72) : rand(0.42, 0.55);
-  const kb = how === 'stab' ? rand(0.9, 1.4) : bat ? rand(4.6, 6.4) : rand(2.4, 3.6);
+  // 방망이류: 방망이, 주운 산탄총(club), 주운 발사관(tube), 양손 방망이로 내리치기(bonk)
+  const tube = how === 'tube', club = how === 'club', bonk = how === 'bonk';
+  const bat = how === 'bat' || tube || club || bonk;
+  p.fallT = how === 'stab' ? 0.62 : tube ? rand(0.85, 1.05) : club ? rand(0.66, 0.8) : bonk ? rand(0.55, 0.65) : bat ? rand(0.6, 0.72) : rand(0.42, 0.55);
+  const kb = how === 'stab' ? rand(0.9, 1.4) : tube ? rand(8.5, 11.5) : club ? rand(5.8, 7.8) : bonk ? rand(1.8, 2.6) : bat ? rand(4.6, 6.4) : rand(2.4, 3.6);
   p.kbx = dx * kb; p.kbz = dz * kb;
-  p.fly = bat ? rand(0.3, 0.6) : 0;
-  p.spin = how === 'stab' ? rand(-0.6, 0.6) : bat ? rand(-6, 6) : rand(-1.6, 1.6);
+  p.fly = tube ? rand(0.9, 1.4) : club ? rand(0.45, 0.8) : bonk ? rand(0.05, 0.15) : bat ? rand(0.3, 0.6) : 0;
+  p.spin = how === 'stab' ? rand(-0.6, 0.6) : tube ? rand(-9, 9) : club ? rand(-7, 7) : bonk ? rand(-2, 2) : bat ? rand(-6, 6) : rand(-1.6, 1.6);
   p.corpse = makeCorpse(p.back);
   // 맞는 순간 고개가 꺾임
   p.pose[P.HX] += p.back ? -0.7 : 0.5; p.pose[P.SX] -= 0.25;
@@ -4555,7 +4699,9 @@ function kill(p, dx, dz, how, by, quiet) {
   if (how === 'shot') bloodSpurt(p.x + dx * 0.15, hy, p.z + dz * 0.15, dx, 0.2, dz, 8);
   addDecal(p.x + dx * rand(0.4, 1.1), p.z + dz * rand(0.4, 1.1), rand(0.7, 1.2), 2, Math.atan2(dx, dz) - Math.PI / 2 + rand(-0.3, 0.3));
   const pan = screenPan(p.x, p.z);
-  if (bat) sfxBat(pan, vfar);
+  if (tube) { if (sv > 0) sfxTubeHit(pan, vfar * sv); }
+  else if (club) { if (sv > 0) sfxClubHit(pan, vfar * sv); }
+  else if (bat) sfxBat(pan, vfar * (bonk ? 0.8 : 1));
   else sfxFlesh((how === 'stab' ? 1 : 0.85) * (by ? vfar : 1), pan);
   if (by) { by.kills++; G.allyKills++; }
   else { G.kills++; hudKill(); }
@@ -4636,6 +4782,7 @@ function shootStreetRocket(x, z) {
   p.rotation.y = Math.atan2(-dx, -dz);
   ME.lastShot[1] = G.lastShotT = G.t; ME.aim[1] = 1; ME.aimPt[1].copy(r.target); ME.recoil[1] = 1;
   r.rounds--; r.cooldown = 1.5;
+  if (!r.rounds) { r.dropT = 0.75; r.model.userData.head.visible = false; }   // 마지막 한 발: 빈 관을 잠깐 들고 있다가 버림
   weaponEl.classList.toggle('rkon', r.rounds > 0); sgBadge(true);
   if (ok()) sfxShotgunOut(screenPan(ME.x, ME.z));
 }
@@ -4643,6 +4790,7 @@ function streetRocketTick(dt) {
   const r = streetRocket;
   if (!r.projectile) return;
   r.cooldown = Math.max(0, r.cooldown - dt);
+  if (r.dropT > 0 && !BD.on) { r.dropT -= dt; if (r.dropT <= 0) rocketDiscard(false); }   // 생일파티 중에는 들고 있다가 끝나고 버림
   if (r.flashT > 0) {
     r.flashT = Math.max(0, r.flashT - dt);
     const k = r.flashT / 0.28;
@@ -4663,6 +4811,21 @@ function streetRocketTick(dt) {
     if (d <= 3.2 && d < houseRayT(x, z, dx / (d || 1), dz / (d || 1))) poweredKill(q, dx / (d || 1), dz / (d || 1), true);
   }
 }
+// 다 쓴 로켓 발사관은 바닥에 버린다 (2급이 주워 감)
+function rocketDiscard(quiet) {
+  const r = streetRocket;
+  r.dropT = 0;
+  if (!r.model) return;
+  r.model.visible = false; r.model.userData.head.visible = true;
+  MR.wrR.getWorldPosition(_v2);
+  const g = lootMakeObj('tube');
+  const y0 = Math.max(0.3, _v2.y - 0.1);
+  g.position.set(_v2.x, y0, _v2.z); g.rotation.set(0, rand(0, TAU), 0.25, 'YXZ');
+  g.userData.fall = { t: 0, y0, r0: 0.25, y1: LOOT_Y.tube };
+  scene.add(g); SG.dropped.push(g);
+  if (!quiet) sfxTubeDrop(screenPan(_v2.x, _v2.z));
+  if (!quiet && G.state === 'play') lootAdd('tube', g, g.position.x, g.position.z, 'fall');
+}
 function sgTick(dt) {
   if (!SG.on) return;
   SG.cd -= dt;
@@ -4682,14 +4845,16 @@ function sgDiscard(quiet) {
   SG.on = false; SG.dropT = -1; SG.ejectT = -1; SG.model.visible = false; SG.flash.visible = false;
   // 오른손 높이에서 떨어뜨리고, 그 손에는 다시 권총
   MR.wrR.getWorldPosition(_v2);
-  sgDropAt(_v2.x, _v2.z, Math.max(0.25, _v2.y - 0.1));
+  const g = sgDropAt(_v2.x, _v2.z, Math.max(0.25, _v2.y - 0.1));
   if (!quiet) sfxGunDrop(screenPan(_v2.x, _v2.z), 0.28);
   weaponEl.classList.remove('sgon'); sgBadge(false);
+  // 다 쓴 총은 2급이 주워 간다
+  if (!quiet && G.state === 'play') lootAdd('sg', g, g.position.x, g.position.z, 'fall');
 }
 function sgReset() {
   const r = streetRocket;
-  r.rounds = r.cooldown = r.flashT = 0;
-  if (r.model) r.model.visible = r.projectile.visible = r.flash.visible = false;
+  r.rounds = r.cooldown = r.flashT = r.dropT = 0;
+  if (r.model) { r.model.visible = r.projectile.visible = r.flash.visible = false; r.model.userData.head.visible = true; }
   weaponEl.classList.remove('rkon');
   SG.on = false; SG.shells = 0; SG.cd = 0; SG.dropT = -1; SG.ejectT = -1; SG.pumpT = 9; SG.flashT = 0;
   SG.model.visible = false; SG.flash.visible = false;
@@ -4698,6 +4863,7 @@ function sgReset() {
     g.traverse((n) => { if (n.geometry) n.geometry.dispose(); if (n.material && n.material !== OUT_MAT) n.material.dispose(); });
   }
   SG.dropped.length = 0;
+  LOOT.length = 0;
   weaponEl.classList.remove('sgon'); sgBadge(false);
 }
 function sgAnimate(dt) {
@@ -4710,7 +4876,7 @@ function sgAnimate(dt) {
     if (!f || f.t >= 1) continue;
     f.t = Math.min(1, f.t + dt / 0.3);
     const e = easeInQuad(f.t);
-    g.position.y = lerp(f.y0, 0.045, e);
+    g.position.y = lerp(f.y0, f.y1 || 0.045, e);
     g.rotation.z = lerp(f.r0, Math.PI / 2, e);
   }
 }
@@ -4917,7 +5083,7 @@ function guardUpdate(dt) {
   if (ME.clingers.length >= 2) {
     let bd = 1e9;
     for (const g of guards) {
-      if (g.helpCD > 0 || g.clingers.length || g.swing) continue;
+      if (g.helpCD > 0 || g.clingers.length || g.swing || g.claim || g.pick) continue;
       const d = Math.hypot(g.x - ME.x, g.z - ME.z);
       if (d < bd) { bd = d; GUARD.helper = g; }
     }
@@ -4966,10 +5132,12 @@ function makeAlly(k) {
     swing: null, stab: null, cd: 0, target: null, tgtT: 0, freeT: 0, five: null, kills: 0,
     post: 0, postIdx: -1, sector: Math.PI, helpCD: 0, helping: null, ready: 0,
     hideBat: false, hideKnife: false, seed: rand(0, 100),
+    wr: 'bat', wl: 'knife', pick: null, claim: null, claimT: 0, swingHand: 0,   // 오른손·왼손에 든 것, 줍는 중, 주우러 가는 무기
     hx: 0, hy: 1.7, hz: 0,
   };
 }
 const ALLIES = [0, 1, 2, 3].map(makeAlly);
+const LOOT = [];   // 바닥의 무기: 1급이 버린 빈 산탄총·빈 발사관, 2급이 버린 방망이
 ALLIES.forEach((a) => setAllyColors(a.k, { shirt: a.def.shirt, hair: a.def.hair }));
 // 눈 반짝이: 2급은 작게 두 개, 3급은 더 작게 한 개
 const ALLY_SPARKS = ALLIES.map((a) => {
@@ -4986,6 +5154,7 @@ function resetAllies() {
     a.state = 'off'; a.slotOcc.fill(null); a.clingers.length = 0;
     a.rescued = false; a.pinned = false; a.pinT = 0;
     a.swing = a.stab = a.five = a.target = null; a.kills = 0; a.hideBat = a.hideKnife = false;
+    a.wr = 'bat'; a.wl = 'knife'; a.pick = a.claim = null; a.claimT = 0; a.swingHand = 0;
     a.postIdx = -1; a.helpCD = 0; a.helping = null; a.ready = 0;
     hideAllyInstance(a.k); setAllyFace(a.k, false);
     for (const sp of ALLY_SPARKS[a.k]) sp.visible = false;
@@ -5071,40 +5240,66 @@ function fiveSim(a, dt) {
 
 // ── 싸움 ──
 function allyTargetOk(t) { return !!t && (t.state === 'chase' || t.state === 'press' || t.state === 'rise'); }
+// 손에 든 무기에 따라: 휘두르는 시간(dur)·맞는 순간(hit)·닿는 거리(reach)·부채꼴(cone: 정면과의 내적 하한)·한 번에 쓰러뜨리는 수(max)
+// 다가설 거리(near)·휘두르기 시작할 거리(start)·다음까지 쉬는 시간(cd)·쓰러지는 모양(how)·자세(wind 뒤로 젖히는 비율, amp 팔, twist 허리)
+const ALLY_WEP = {
+  bat: { dur: 0.44, hit: 0.15, reach: 1.5, cone: 0.3, max: 1, near: 0.95, start: 1.3, cd: [0.75, 1.1], how: 'bat', wind: 0.3, amp: 1.25, twist: 0.55 },
+  // 3급 양손 방망이: 오른손, 왼손 번갈아 쉴 새 없이
+  dual: { dur: 0.36, hit: 0.16, reach: 1.5, cone: 0.3, max: 1, near: 0.95, start: 1.3, cd: [0.26, 0.42], how: 'bat', wind: 0.28, amp: 1.2, twist: 0.5 },
+  // 2급이 주운 빈 산탄총: 총열을 쥐고 개머리판으로
+  sg: { dur: 0.5, hit: 0.27, reach: 1.75, cone: 0.1, max: 3, near: 1.05, start: 1.5, cd: [0.8, 1.15], how: 'club', wind: 0.34, amp: 1.35, twist: 0.65 },
+  // 2급이 주운 빈 로켓 발사관: 크게 한 바퀴
+  tube: { dur: 0.7, hit: 0.41, reach: 2.15, cone: -0.15, max: 5, near: 1.2, start: 1.85, cd: [1.0, 1.4], how: 'tube', wind: 0.4, amp: 1.5, twist: 0.85 },
+};
+function allyWep(a) { return a.wr === 'tube' ? ALLY_WEP.tube : a.wr === 'sg' ? ALLY_WEP.sg : a.wl === 'bat' ? ALLY_WEP.dual : ALLY_WEP.bat; }
 function startSwing(a, t) {
-  a.swing = { t: 0, hit: false, dir: Math.atan2(t.x - a.x, t.z - a.z) };
-  sfxSwing(screenPan(a.x, a.z), allyVol(a));
+  const W = allyWep(a);
+  const hand = W === ALLY_WEP.dual ? (a.swingHand = 1 - a.swingHand) : 0;   // 1 = 왼손
+  a.swing = { t: 0, hit: false, dir: Math.atan2(t.x - a.x, t.z - a.z), spec: W, hand };
+  if (W === ALLY_WEP.tube) sfxBigSwing(screenPan(a.x, a.z), allyVol(a));
+  else sfxSwing(screenPan(a.x, a.z), allyVol(a));
 }
 function allySwingHit(a) {
-  const dir = a.swing.dir, fx = Math.sin(dir), fz = Math.cos(dir);
-  const lx = Math.cos(dir), lz = -Math.sin(dir);   // 휘두르는 쪽 (왼쪽)
+  const W = a.swing.spec, dir = a.swing.dir, fx = Math.sin(dir), fz = Math.cos(dir);
+  // 휘두르는 쪽으로 쓸려 넘어감: 오른손은 왼쪽으로, 왼손은 오른쪽으로
+  const side = a.swing.hand ? -1 : 1;
+  const lx = Math.cos(dir) * side, lz = -Math.sin(dir) * side;
   const hits = [];
   for (const p of live) {
     if (!allyTargetOk(p)) continue;
     const dx = p.x - a.x, dz = p.z - a.z, d = Math.hypot(dx, dz);
-    if (d > 1.5 || d < 0.05) continue;
-    if ((dx * fx + dz * fz) / d < 0.3) continue;
+    if (d > W.reach || d < 0.05) continue;
+    if ((dx * fx + dz * fz) / d < W.cone) continue;
     hits.push({ p, d });
   }
   hits.sort((u, v) => u.d - v.d);
-  const n = hits.length > 1 && hits[1].d < 1.25 && Math.random() < 0.25 ? 2 : Math.min(1, hits.length);
+  const n = W.max === 1 ? (hits.length > 1 && hits[1].d < 1.25 && Math.random() < 0.25 ? 2 : Math.min(1, hits.length)) : Math.min(W.max, hits.length);
+  const big = W.how === 'tube', rad = big ? 0.9 : 0.75, lat = big ? 0.55 : 0.65;
   for (let i = 0; i < n; i++) {
     const { p, d } = hits[i];
-    let kx = (p.x - a.x) / d * 0.75 + lx * 0.65, kz = (p.z - a.z) / d * 0.75 + lz * 0.65;
+    let kx = (p.x - a.x) / d * rad + lx * lat, kz = (p.z - a.z) / d * rad + lz * lat;
     const kl = Math.hypot(kx, kz) || 1; kx /= kl; kz /= kl;
-    kill(p, kx, kz, 'bat', a);
+    // 여럿이 한꺼번에 날아가도 때리는 소리는 앞의 둘만 (겹치면 소리가 뭉개짐)
+    kill(p, kx, kz, W.how, a, false, W.max === 1 ? 1 : i === 0 ? 1 : i === 1 ? 0.55 : 0);
   }
-  if (n) CAM.shake = Math.max(CAM.shake, 0.035 * allyVol(a));
+  if (n) CAM.shake = Math.max(CAM.shake, (big ? 0.085 : W.how === 'club' ? 0.05 : 0.035) * allyVol(a));
+}
+// 매달린 사람 떼어 내기: 칼이 있으면 칼로, 3급이 양손에 방망이를 들었으면 왼손 방망이로 내리친다
+function allyStabStart(a, target) {
+  const bonk = a.wl === 'bat';
+  a.stab = { t: 0, target, done: false, bonk };
+  if (bonk) sfxSwing(screenPan(a.x, a.z), allyVol(a) * 0.7);
+  else sfxStab(screenPan(a.x, a.z), allyVol(a) * 0.8);
 }
 function allyKnife(a) {
-  if (a.stab || a.cd > 0 || !a.clingers.length) return;
-  a.stab = { t: 0, target: a.clingers[0], done: false };
-  sfxStab(screenPan(a.x, a.z), allyVol(a) * 0.8);
+  if (a.stab || a.cd > 0 || !a.clingers.length || a.pick) return;
+  allyStabStart(a, a.clingers[0]);
 }
-function allyStabHit(a, c) {
+function allyStabHit(a, c, bonk) {
   if (c.state !== 'cling') return;   // 자기 몸, 내 몸, 다른 친구의 몸에 매달린 사람 모두
   if (c.host === ME) G.helped++;
   const dx = c.x - a.x, dz = c.z - a.z, d = Math.hypot(dx, dz) || 1;
+  if (bonk) { kill(c, dx / d, dz / d, 'bonk', a); return; }
   kill(c, dx / d, dz / d, 'stab', a);
   bloodSpurt(c.tx, c.ty, c.tz, -dx / d * 0.5, 0.5, -dz / d * 0.5, 8);
 }
@@ -5116,6 +5311,172 @@ function idleFacing(a) {
     if (d < bd) { bd = d; best = p; }
   }
   return best ? Math.atan2(best.x - a.x, best.z - a.z) : 0;
+}
+
+// ── 1급이 다 쓰고 버린 무기 ──
+// 빈 산탄총·빈 로켓 발사관은 2급이 말없이 주워 든다(총은 못 받았으니 쏘지는 못하고 팬다).
+// 2급은 쓰던 방망이를 어깨 너머로 버리고, 그 방망이는 3급이 주워 양손에 든다.
+const LOOT_REACH = 11;   // 1급에게서 이만큼 안에 떨어진 것만 주우러 감
+function lootWants(a, kind) { return kind === 'bat' ? a.grade === 3 && a.wl === 'knife' : a.grade === 2 && a.wr === 'bat'; }
+function allyLootFree(a) { return a.state === 'fight' && a.rescued && !a.pinned && !a.clingers.length && !a.pick && !a.claim && !a.five; }
+function lootAdd(kind, obj, x, z, state) {
+  const L = { kind, obj, x, z, state, t: 0, claim: null, vx: 0, vy: 0, vz: 0, spin: 0, bounced: false };
+  LOOT.push(L);
+  return L;
+}
+function lootDispose(obj) {
+  if (!obj) return;
+  scene.remove(obj);
+  const i = SG.dropped.indexOf(obj); if (i >= 0) SG.dropped.splice(i, 1);
+  obj.traverse((n) => { if (n.geometry) n.geometry.dispose(); if (n.material && n.material !== OUT_MAT) n.material.dispose(); });
+}
+function lootForget(L) {
+  const i = LOOT.indexOf(L); if (i >= 0) LOOT.splice(i, 1);
+  if (L.claim && L.claim.claim === L) L.claim.claim = null;
+  L.claim = null;
+}
+// 바닥에 놓인 모양 그대로 만들기 (집에서 나올 때 다시 놓을 때도 씀)
+function lootMakeObj(kind) {
+  if (kind === 'sg') { const { g } = makeOutShotgun(); return g; }
+  if (kind === 'tube') {
+    const g = buildRocketModel(THREE, toon, OUT_MAT, rocketWarheadGeo(THREE, mergeGeos));
+    g.userData.head.visible = false;   // 쏘고 난 빈 관
+    g.scale.setScalar(1.18);
+    g.traverse((n) => { if (n.isMesh && n.material !== OUT_MAT) n.castShadow = true; });
+    return g;
+  }
+  const geo = makeLooseBatGeo();
+  const m = new THREE.Mesh(geo, toon(0xffffff, { vertexColors: true }));
+  m.castShadow = true; m.add(new THREE.Mesh(geo, OUT_MAT));
+  return m;
+}
+const LOOT_Y = { sg: 0.045, tube: 0.085, bat: 0.045 };
+function lootPlace(kind, x, z) {
+  const g = lootMakeObj(kind);
+  g.rotation.order = 'YXZ';
+  g.position.set(x, LOOT_Y[kind], z);
+  g.rotation.set(0, rand(0, TAU), kind === 'bat' ? 0 : Math.PI / 2);
+  scene.add(g); SG.dropped.push(g);
+  return lootAdd(kind, g, x, z, 'ground');
+}
+// 2급이 쓰던 방망이를 휙 버림: 1급 쪽이 아니라 바깥으로
+function lootTossBat(a, x, y, z) {
+  const g = lootMakeObj('bat');
+  g.rotation.order = 'YXZ';
+  const ox = a.x - ME.x, oz = a.z - ME.z;
+  let ang = (ox * ox + oz * oz > 0.04 ? Math.atan2(ox, oz) : a.yaw + Math.PI) + rand(-0.5, 0.5);
+  const sp = rand(2.1, 2.5);
+  for (let i = 0; i < 7 && HOUSE.on && houseNear(x + Math.sin(ang) * 1.9, z + Math.cos(ang) * 1.9, 0.6); i++) ang += 0.9;
+  g.position.set(x, Math.max(0.6, y), z); g.rotation.set(0, ang, 0);
+  scene.add(g); SG.dropped.push(g);
+  const L = lootAdd('bat', g, x, z, 'fly');
+  L.vx = Math.sin(ang) * sp; L.vz = Math.cos(ang) * sp; L.vy = rand(2.4, 2.8);
+  L.spin = rand(12, 15) * (Math.random() < 0.5 ? -1 : 1);
+  sfxSwing(screenPan(x, z), allyVol(a) * 0.5);
+}
+function lootFly(L, dt) {
+  const g = L.obj;
+  L.vy -= 9.8 * dt;
+  L.x += L.vx * dt; L.z += L.vz * dt;
+  let y = g.position.y + L.vy * dt;
+  g.rotation.x += L.spin * dt;
+  if (y <= LOOT_Y.bat && L.vy < 0) {
+    y = LOOT_Y.bat;
+    if (!L.bounced) {
+      // 한 번 튀고
+      L.bounced = true; L.vy = -L.vy * 0.26; L.vx *= 0.5; L.vz *= 0.5; L.spin *= 0.35;
+      sfxBatClatter(screenPan(L.x, L.z), clamp(1.25 - Math.hypot(L.x - ME.x, L.z - ME.z) * 0.07, 0.3, 0.9));
+    } else {
+      L.state = 'ground'; L.t = 0;
+      g.rotation.x = Math.round(g.rotation.x / Math.PI) * Math.PI;   // 바닥에 눕는다
+    }
+  }
+  g.position.set(L.x, y, L.z);
+}
+function lootSim(dt) {
+  for (let i = LOOT.length - 1; i >= 0; i--) {
+    const L = LOOT[i];
+    if (!L.obj) { LOOT.splice(i, 1); continue; }
+    L.t += dt;
+    if (L.state === 'fly') lootFly(L, dt);
+    else if (L.state === 'fall' && L.t > 0.34) { L.state = 'ground'; L.t = 0; }
+  }
+  // 줍기는 싸우는 중에만 (생일파티 중에는 쉼)
+  const live_ = G.state === 'play' && !BD.on;
+  for (const a of ALLIES) {
+    if (!a.claim) continue;
+    if (!live_ || a.state !== 'fight' || !LOOT.includes(a.claim)) { if (a.claim.claim === a) a.claim.claim = null; a.claim = null; }
+  }
+  if (!live_) return;
+  for (const L of LOOT) {
+    if (L.state !== 'ground' || L.t < 0.15 || L.claim) continue;
+    if (Math.hypot(L.x - ME.x, L.z - ME.z) > LOOT_REACH) continue;
+    let best = null, bd = 14;
+    for (const a of ALLIES) {
+      if (!allyLootFree(a) || !lootWants(a, L.kind)) continue;
+      const d = Math.hypot(a.x - L.x, a.z - L.z);
+      if (d < bd) { bd = d; best = a; }
+    }
+    if (best) { best.claim = L; L.claim = best; best.target = null; best.claimT = 0; }
+  }
+}
+// 주우러 간 친구가 무기에 닿으면: 2급은 방망이를 버리고 쪼그려 앉아 오른손으로, 3급은 칼을 넣고 왼손으로
+const PICK_R = { toss: 0.13, c0: 0.3, grab: 0.64, end: 1.0 }, PICK_L = { tuck: 0.1, grab: 0.36, end: 0.7 };
+function allyPickStart(a, L) {
+  const right = L.kind !== 'bat';
+  a.pick = { loot: L, t: 0, right, toss: right && a.wr === 'bat', tossed: false, tossNow: false, got: false, face: Math.atan2(L.x - a.x, L.z - a.z) };
+  a.claim = null; a.target = null; a.helping = null;
+  L.claim = a;
+}
+function lootGrab(a, L) {
+  if (a.pick) a.pick.got = true;
+  if (L.kind === 'bat') a.wl = 'bat'; else a.wr = L.kind;
+  lootDispose(L.obj); L.obj = null;
+  lootForget(L);
+  const pan = screenPan(a.x, a.z), v = allyVol(a);
+  if (L.kind === 'bat') sfxPickBat(pan, v); else sfxPickGun(pan, v, L.kind === 'tube');
+}
+function allyPickTick(a, dt) {
+  const k = a.pick, L = k.loot;
+  if (a.pinned || a.state !== 'fight' || (!k.got && !LOOT.includes(L))) { allyPickAbort(a); return; }
+  k.t += dt;
+  if (k.right) {
+    if (k.toss && !k.tossed && k.t >= PICK_R.toss) { k.tossed = true; k.tossNow = true; a.wr = 'none'; }
+    const off = k.toss ? 0 : PICK_R.c0;
+    if (!k.got && k.t >= PICK_R.grab - off) lootGrab(a, L);
+    if (k.t >= PICK_R.end - off) { a.pick = null; a.cd = Math.max(a.cd, 0.15); }
+  } else {
+    if (k.t >= PICK_L.tuck && a.wl === 'knife') a.wl = 'none';
+    if (!k.got && k.t >= PICK_L.grab) lootGrab(a, L);
+    if (k.t >= PICK_L.end) { a.pick = null; a.cd = Math.max(a.cd, 0.15); }
+  }
+}
+// 줍다가 붙잡히거나 장면이 바뀌면: 빈손이 되지 않게 정리
+function allyPickAbort(a) {
+  const k = a.pick;
+  a.pick = null;
+  if (!k) return;
+  if (k.tossNow) { k.tossNow = false; lootTossBat(a, a.x, 1.1, a.z); }
+  if (k.tossed && !k.got && LOOT.includes(k.loot)) { lootGrab(a, k.loot); return; }
+  if (k.tossed && !k.got) a.wr = 'bat';   // 주울 것이 사라졌으면 (거의 없음) 원래대로
+  if (a.wr === 'none') a.wr = 'bat';
+  if (a.wl === 'none') a.wl = 'knife';
+  if (LOOT.includes(k.loot) && k.loot.claim === a) k.loot.claim = null;
+}
+// 건물로 들어가기 직전: 줍던 것은 마저 쥐고, 바닥에 남은 것은 종류만 기억
+function lootSettle() {
+  for (const a of ALLIES) {
+    if (a.pick) {
+      const k = a.pick;
+      if (k.tossNow) { k.tossNow = false; lootTossBat(a, a.x, 1.1, a.z); }
+      if (!k.got && LOOT.includes(k.loot) && (k.tossed || k.t >= (k.right ? PICK_R.grab - 0.15 : PICK_L.grab - 0.1))) lootGrab(a, k.loot);
+      allyPickAbort(a);
+    }
+    if (a.claim) { a.claim.claim = null; a.claim = null; }
+    if (a.wr === 'none') a.wr = 'bat';
+    if (a.wl === 'none') a.wl = 'knife';
+  }
+  return LOOT.filter((L) => L.obj).map((L) => L.kind);
 }
 
 function allySim(dt) {
@@ -5134,15 +5495,17 @@ function allySim(dt) {
     }
     if (a.state === 'freed' && G.state !== 'play') a.state = 'fight';   // 마지막 난장판에서는 하이파이브 생략
     a.cd -= dt;
+    if (a.pick) allyPickTick(a, dt);
     if (a.stab) {
       a.stab.t += dt;
-      if (!a.stab.done && a.stab.t >= 0.1) { a.stab.done = true; allyStabHit(a, a.stab.target); }
-      if (a.stab.t >= 0.28) { a.stab = null; a.cd = Math.max(a.cd, a.pinned ? 0.45 : 0.1); }   // 붙잡힌 채로는 느리게
+      if (!a.stab.done && a.stab.t >= (a.stab.bonk ? 0.175 : 0.1)) { a.stab.done = true; allyStabHit(a, a.stab.target, a.stab.bonk); }
+      if (a.stab.t >= (a.stab.bonk ? 0.32 : 0.28)) { a.stab = null; a.cd = Math.max(a.cd, a.pinned ? 0.45 : 0.1); }   // 붙잡힌 채로는 느리게
     }
     if (a.swing) {
+      const W = a.swing.spec;
       a.swing.t += dt;
-      if (!a.swing.hit && a.swing.t >= 0.15) { a.swing.hit = true; allySwingHit(a); }
-      if (a.swing.t >= 0.44) { a.swing = null; a.cd = Math.max(a.cd, rand(0.75, 1.1)); }
+      if (!a.swing.hit && a.swing.t >= W.hit) { a.swing.hit = true; allySwingHit(a); }
+      if (a.swing.t >= W.dur) { a.swing = null; a.cd = Math.max(a.cd, rand(W.cd[0], W.cd[1])); }
     }
     let tx = a.x, tz = a.z, spd = 0, face = null, fiveApproach = false;
     if (a.state === 'trapped') {
@@ -5166,7 +5529,18 @@ function allySim(dt) {
       a.helping = null;
       if (a.pinned) { a.target = null; allyKnife(a); }   // 붙잡혀도 버둥대며 한 명씩 떼어 낸다
       else if (a.clingers.length) allyKnife(a);
-      else {
+      else if (a.pick) { a.target = null; }
+      else if (a.claim && !a.swing && !a.stab) {
+        // 1급이 버린 무기를 주우러 감 (말없이). 못 닿는 곳이면 잠시 포기
+        const L = a.claim, dx = L.x - a.x, dz = L.z - a.z, d = Math.hypot(dx, dz) || 1;
+        a.target = null;
+        a.claimT += dt;
+        face = Math.atan2(dx, dz);
+        tx = L.x - dx / d * 0.32; tz = L.z - dz / d * 0.32; spd = 4.9;
+        if (d < 0.62) allyPickStart(a, L);
+        else if (a.claimT > 6) { L.claim = null; L.t = -3; a.claim = null; }
+      } else {
+        const W = allyWep(a);
         a.tgtT -= dt;
         if (a.tgtT <= 0 || !guardTargetOk(a.target)) { a.tgtT = rand(0.15, 0.25); a.target = guardTarget(a); }
         const t = a.target;
@@ -5175,23 +5549,22 @@ function allySim(dt) {
         if (t && !hc) {
           const d = Math.hypot(t.x - a.x, t.z - a.z);
           face = Math.atan2(t.x - a.x, t.z - a.z);
-          if (d > 0.95) {
+          if (d > W.near) {
             let gx = t.x, gz = t.z;
             const ox = gx - ME.x, oz = gz - ME.z, ol = Math.hypot(ox, oz);
             if (ol > GUARD_LEASH) { gx = ME.x + ox / ol * GUARD_LEASH; gz = ME.z + oz / ol * GUARD_LEASH; }
             tx = gx; tz = gz; spd = 4.6;
           }
-          if (d < 1.3 && !a.swing && !a.stab && a.cd <= 0) startSwing(a, t);
+          if (d < W.start && !a.swing && !a.stab && a.cd <= 0) startSwing(a, t);
         } else if (hc) {
-          // 매달린 사람의 바깥쪽에 서서 칼로 떼어 냄
+          // 매달린 사람의 바깥쪽에 서서 칼(또는 방망이)로 떼어 냄
           a.helping = hc;
           const ox = hc.x - ME.x, oz = hc.z - ME.z, ol = Math.hypot(ox, oz) || 1;
           tx = hc.x + ox / ol * 0.5; tz = hc.z + oz / ol * 0.5; spd = 4.8;
           face = Math.atan2(hc.x - a.x, hc.z - a.z);
           if (Math.hypot(hc.x - a.x, hc.z - a.z) < 0.78) {
-            a.stab = { t: 0, target: hc, done: false };
+            allyStabStart(a, hc);
             a.helpCD = GUARD_HELP_CD;
-            sfxStab(screenPan(a.x, a.z), allyVol(a) * 0.8);
           }
         } else {
           tx = px; tz = pz;
@@ -5210,13 +5583,13 @@ function allySim(dt) {
     if (a.state !== 'five') {
       let wx = 0, wz = 0;
       const dx = tx - a.x, dz = tz - a.z, d = Math.hypot(dx, dz);
-      const mul = a.state === 'trapped' || a.pinned || a.stab ? 0 : SPEED_MUL[Math.min(a.clingers.length, SPEED_MUL.length - 1)] * (a.swing ? 0.3 : 1);
+      const mul = a.state === 'trapped' || a.pinned || a.stab || a.pick ? 0 : SPEED_MUL[Math.min(a.clingers.length, SPEED_MUL.length - 1)] * (a.swing ? 0.3 : 1);
       if (d > 0.02 && spd > 0) { const v = Math.min(spd, d * 6) * mul; wx = dx / d * v; wz = dz / d * v; }
       // 움직이는 손자리의 속도도 따라가야 가까이서 감속해도 하이파이브에 닿는다.
       if (fiveApproach) { wx += ME.vx; wz += ME.vz; }
       if (a.state !== 'trapped' && !a.pinned) {
         const push = (ox, oz, r, k) => { const ex = a.x - ox, ez = a.z - oz, e = Math.hypot(ex, ez); if (e < r && e > 1e-4) { const f = (r - e) / r * k; wx += ex / e * f; wz += ez / e * f; } };
-        if (a.state !== 'end') push(ME.x, ME.z, a.helping ? 0.62 : 0.95, 6);
+        if (a.state !== 'end') push(ME.x, ME.z, a.helping || a.claim || a.pick ? 0.62 : 0.95, 6);
         for (const b of ALLIES) if (b !== a && allyOn(b)) push(b.x, b.z, 0.9, 5);
         if (!a.clingers.length && a.state !== 'end') for (const p of live) if (p.state === 'chase' || p.state === 'press') push(p.x, p.z, 0.62, 5);
       }
@@ -5232,10 +5605,11 @@ function allySim(dt) {
     a.phase += a.spd * dt / 0.6 * Math.PI;
     a.walk = approach(a.walk, clamp(a.spd / 2.6, 0, 1), 8, dt);
     // 자리를 지키고 서 있을 때는 방망이를 들고 경계 자세
-    const guarding = a.state === 'fight' && !a.target && !a.helping && !a.swing && !a.stab && !a.clingers.length;
+    const guarding = a.state === 'fight' && !a.target && !a.helping && !a.swing && !a.stab && !a.pick && !a.claim && !a.clingers.length;
     a.ready = approach(a.ready, guarding ? 1 : 0, 6, dt);
     if (a.swing) face = a.swing.dir;
     else if (a.stab) face = Math.atan2(a.stab.target.x - a.x, a.stab.target.z - a.z);
+    else if (a.pick) face = a.pick.face;
     if (face === null) face = a.spd > 0.5 ? Math.atan2(a.vx, a.vz) : idleFacing(a);
     if (a.state !== 'five') a.yaw = angleApproach(a.yaw, face, a.swing ? 22 : a.state === 'trapped' ? 2 : 9, dt);
   }
@@ -5254,6 +5628,25 @@ function armToward(a, left, x, y, z) {
   _aw[1] = Math.atan2(dlx, dlz);
   return _aw;
 }
+// 바닥의 무기를 집으려고 쪼그려 앉음 (c: 0~1)
+function squatPose(o, c, a, left, L) {
+  o[P.HY] = lerp(o[P.HY], M.HIP_Y - 0.25, c);
+  o[P.LHX] = lerp(o[P.LHX], -1.3, c); o[P.RHX] = lerp(o[P.RHX], -1.2, c);
+  o[P.LKX] = lerp(o[P.LKX], 2.0, c); o[P.RKX] = lerp(o[P.RKX], 1.9, c);
+  o[P.LHZ] = lerp(o[P.LHZ], 0.2, c); o[P.RHZ] = lerp(o[P.RHZ], -0.2, c);
+  o[P.SX] = lerp(o[P.SX], 0.42, c); o[P.HX] = lerp(o[P.HX], -0.22, c);
+  const r = armToward(a, left, L.x, 0.25, L.z);
+  // 허리를 숙인 만큼 팔은 덜 내림
+  const sx = r[0] + 0.3, sy = r[1];
+  if (left) { o[P.LSX] = lerp(o[P.LSX], sx, c); o[P.LSY] = lerp(o[P.LSY], sy, c); o[P.LSZ] = lerp(o[P.LSZ], 0.05, c); o[P.LEX] = lerp(o[P.LEX], -0.1, c); }
+  else { o[P.RSX] = lerp(o[P.RSX], sx, c); o[P.RSY] = lerp(o[P.RSY], sy, c); o[P.RSZ] = lerp(o[P.RSZ], -0.05, c); o[P.REX] = lerp(o[P.REX], -0.1, c); }
+}
+// 주운 무기를 든 팔 모양 (걸을 때·서 있을 때). 긴 것은 바닥에 끌리지 않게 앞으로 들고 다님
+function carryPose(o, a, s, w) {
+  if (a.wr === 'sg') { o[P.RSX] = -0.6 + s * 0.15 * w; o[P.RSZ] = -0.26; o[P.REX] = -0.95; }
+  else if (a.wr === 'tube') { o[P.RSX] = -0.78 + s * 0.1 * w; o[P.RSZ] = -0.3; o[P.REX] = -1.15; }
+  if (a.wl === 'bat') { o[P.LSX] = -0.35 + s * 0.25 * w; o[P.LSZ] = 0.2; o[P.LEX] = -0.55; }
+}
 function allyPose(a, t, o) {
   if (a.state === 'poster') { posterFriendPose(a, t, o); return; }
   if (a.state === 'party') { bdayAllyPose(a, t, o); return; }
@@ -5268,6 +5661,7 @@ function allyPose(a, t, o) {
   // 방망이(오른손)는 살짝 들고, 칼(왼손)은 아래로
   o[P.RSX] = -0.35 + s * 0.25 * w; o[P.RSZ] = -0.22; o[P.REX] = -0.55;
   o[P.LSX] = -0.15 - s * 0.25 * w; o[P.LSZ] = 0.14; o[P.LEX] = -0.35;
+  carryPose(o, a, s, w);
   if (a.state === 'trapped' || a.pinned) {
     // 붙잡혀서 버둥
     const k1 = Math.sin(t * 9.5 + a.seed), k2 = Math.sin(t * 6.3 + a.seed * 2), k3 = Math.sin(t * 13 + a.seed);
@@ -5288,27 +5682,66 @@ function allyPose(a, t, o) {
   }
   if (a.state === 'end') {
     o[P.SX] = 0; o[P.HX] = 0; o[P.HW] = 0; o[P.SY] = 0;
-    o[P.RSX] = -0.12; o[P.RSZ] = -0.12; o[P.REX] = -0.3; o[P.LSX] = -0.08; o[P.LSZ] = 0.1; o[P.LEX] = -0.3;
+    o[P.RSX] = -0.12; o[P.RSZ] = -0.12; o[P.REX] = -0.3; o[P.LSX] = -0.08; o[P.LSZ] = 0.1; o[P.LEX] = -0.3;   // 주운 무기도 방망이처럼 늘어뜨림 (마지막 장면 얼굴을 가리지 않게)
   }
   if (a.swing) {
-    const k = clamp(a.swing.t / 0.44, 0, 1);
+    const W = a.swing.spec, w0 = W.wind, big = W.how === 'tube';
+    const k = clamp(a.swing.t / W.dur, 0, 1);
     let sw;
-    if (k < 0.3) sw = -easeOutCubic(k / 0.3);
-    else if (k < 0.55) sw = -1 + 2.15 * easeInQuad((k - 0.3) / 0.25);
-    else sw = lerp(1.15, 0.6, easeInOutSine((k - 0.55) / 0.45));
-    o[P.RSX] = -1.4; o[P.RSZ] = 0; o[P.RSY] = sw * 1.25 - 0.1; o[P.REX] = -0.25 + Math.abs(sw) * 0.1;
-    o[P.SY] = sw * 0.55; o[P.HW] = -sw * 0.4; o[P.SX] = 0.12;
-    o[P.LSX] = -0.5; o[P.LSZ] = 0.35;
-    o[P.HY] = M.HIP_Y - 0.05;
-    o[P.LKX] += 0.2; o[P.RKX] += 0.2; o[P.LHX] -= 0.1; o[P.RHX] -= 0.1;
+    if (k < w0) sw = -easeOutCubic(k / w0);
+    else if (k < w0 + 0.25) sw = -1 + 2.15 * easeInQuad((k - w0) / 0.25);
+    else sw = lerp(1.15, 0.6, easeInOutSine((k - w0 - 0.25) / (0.75 - w0)));
+    if (a.swing.hand) {
+      // 왼손 방망이: 오른손과 거울처럼
+      o[P.LSX] = -1.4; o[P.LSZ] = 0; o[P.LSY] = -(sw * W.amp - 0.1); o[P.LEX] = -0.25 + Math.abs(sw) * 0.1;
+      o[P.SY] = -sw * W.twist; o[P.HW] = sw * 0.4;
+      o[P.RSX] = -0.5; o[P.RSZ] = -0.35; o[P.REX] = -0.55;
+    } else {
+      o[P.RSX] = big ? -1.25 : -1.4; o[P.RSZ] = 0; o[P.RSY] = sw * W.amp - 0.1; o[P.REX] = -0.25 + Math.abs(sw) * 0.1;
+      o[P.SY] = sw * W.twist; o[P.HW] = -sw * 0.4;
+      o[P.LSX] = -0.5; o[P.LSZ] = 0.35;
+    }
+    o[P.SX] = big ? 0.18 : 0.12;
+    o[P.HY] = M.HIP_Y - (big ? 0.08 : 0.05);
+    o[P.LKX] += big ? 0.3 : 0.2; o[P.RKX] += big ? 0.3 : 0.2; o[P.LHX] -= big ? 0.16 : 0.1; o[P.RHX] -= big ? 0.16 : 0.1;
   }
   if (a.stab) {
-    const k = clamp(a.stab.t / 0.28, 0, 1);
-    const ext = Math.sin(Math.min(1, k * 1.7) * Math.PI * 0.5) * (1 - Math.max(0, k - 0.6) / 0.4);
     const tp = a.stab.target;
-    const r = armToward(a, true, tp.tx, tp.ty - 0.05, tp.tz);
-    o[P.LSX] = lerp(-0.6, r[0], ext); o[P.LSY] = lerp(0, r[1], ext); o[P.LSZ] = 0; o[P.LEX] = lerp(-1.6, -0.1, ext);
-    o[P.SY] = 0.25 * ext; o[P.SX] = 0.2;
+    if (a.stab.bonk) {
+      // 왼손 방망이를 치켜들었다가 내려침
+      const k = clamp(a.stab.t / 0.32, 0, 1);
+      const r = armToward(a, true, tp.tx, tp.ty + 0.12, tp.tz);
+      const up = k < 0.4 ? easeOutCubic(k / 0.4) : 1;
+      const dn = k < 0.4 ? 0 : k < 0.55 ? easeInQuad((k - 0.4) / 0.15) : 1 - easeInOutSine(clamp((k - 0.75) / 0.25, 0, 1));
+      o[P.LSX] = lerp(lerp(-0.6, -2.75, up), r[0], dn); o[P.LSY] = lerp(0.1, r[1], dn); o[P.LSZ] = lerp(0.25, 0, dn); o[P.LEX] = lerp(-0.5, -0.12, dn);
+      o[P.SX] = lerp(-0.06, 0.3, dn); o[P.SY] = 0.15 * dn;
+    } else {
+      const k = clamp(a.stab.t / 0.28, 0, 1);
+      const ext = Math.sin(Math.min(1, k * 1.7) * Math.PI * 0.5) * (1 - Math.max(0, k - 0.6) / 0.4);
+      const r = armToward(a, true, tp.tx, tp.ty - 0.05, tp.tz);
+      o[P.LSX] = lerp(-0.6, r[0], ext); o[P.LSY] = lerp(0, r[1], ext); o[P.LSZ] = 0; o[P.LEX] = lerp(-1.6, -0.1, ext);
+      o[P.SY] = 0.25 * ext; o[P.SX] = 0.2;
+    }
+  }
+  if (a.pick) {
+    const k = a.pick, L = k.loot, tt = k.t;
+    if (k.right) {
+      const off = k.toss ? 0 : PICK_R.c0;
+      if (k.toss && tt < PICK_R.c0 + 0.04) {
+        // 쥐고 있던 방망이를 어깨 너머 뒤로 휙
+        const u = tt / (PICK_R.c0 + 0.04);
+        const up = u < 0.42 ? easeOutCubic(u / 0.42) : 1;
+        const fl = u < 0.42 ? 0 : easeInOutSine((u - 0.42) / 0.58);
+        o[P.RSX] = lerp(lerp(-0.4, -2.8, up), -1.5, fl); o[P.RSY] = 0; o[P.RSZ] = lerp(-0.2, -0.08, up); o[P.REX] = lerp(-0.5, -0.15, up);
+        o[P.SX] = lerp(0.05, -0.16, up) + fl * 0.12; o[P.HX] = -0.08 * up; o[P.SY] = 0.12 * up;
+      }
+      const c0 = PICK_R.c0 - off, cg = PICK_R.grab - off, ce = PICK_R.end - off;
+      const cc = tt < c0 ? 0 : tt < cg ? easeInOutSine((tt - c0) / (cg - c0)) : 1 - easeInOutSine(clamp((tt - cg) / (ce - cg), 0, 1));
+      if (cc > 0) squatPose(o, cc, a, false, L);
+    } else {
+      const cc = tt < PICK_L.grab ? easeInOutSine(tt / PICK_L.grab) : 1 - easeInOutSine(clamp((tt - PICK_L.grab) / (PICK_L.end - PICK_L.grab), 0, 1));
+      squatPose(o, cc, a, true, L);
+    }
   }
   if (a.five && ME.five) {
     const f = a.five, k = f.k, pt = ME.five.pt, L = f.hand === 'L';
@@ -5318,9 +5751,10 @@ function allyPose(a, t, o) {
     o[P.SZ] = (L ? -1 : 1) * 0.1 * k; o[P.SX] = 0.02;
   }
 }
+const _lootV = new THREE.Vector3();
 function allyAnimate(a, dt) {
   allyPose(a, G.t, a.tgt);
-  const rate = a.swing || a.stab || a.five ? 30 : 16;
+  const rate = a.swing || a.stab || a.five || a.pick ? 30 : 16;
   for (let i = 0; i < NPOSE; i++) a.pose[i] = approach(a.pose[i], a.tgt[i], rate, dt);
   a.pose[P.LIFT] = a.lift || 0;
   applyRig(HR, a.pose, a.x, a.z, a.yaw);
@@ -5329,12 +5763,17 @@ function allyAnimate(a, dt) {
     if (T.bat) pointWrist(HR.wrR, BAT_DIR, T.bat, a.yaw);
     if (T.kn) pointWrist(HR.wrL, TOOL_DOWN, T.kn, a.yaw, KNIFE_FACE);
   } else if (HR.wrR.quaternion.w !== 1 || HR.wrL.quaternion.w !== 1) { resetWrists(); HR.root.updateMatrixWorld(true); }
+  // 방망이를 놓는 순간: 손목 자리에서 날아감
+  if (a.pick && a.pick.tossNow) { a.pick.tossNow = false; HR.wrR.getWorldPosition(_lootV); lootTossBat(a, _lootV.x, _lootV.y, _lootV.z); }
   for (const part of HS.parts) {
     let hide = false;
     if (part.toggle === 'hairA') hide = a.def.bob;
     else if (part.toggle === 'hairB') hide = !a.def.bob;
-    else if (part.toggle === 'bat') hide = a.hideBat;
-    else if (part.toggle === 'knife') hide = a.hideKnife;
+    else if (part.toggle === 'bat') hide = a.hideBat || a.wr !== 'bat';
+    else if (part.toggle === 'sgclub') hide = a.hideBat || a.wr !== 'sg';
+    else if (part.toggle === 'tube') hide = a.hideBat || a.wr !== 'tube';
+    else if (part.toggle === 'knife') hide = a.hideKnife || a.wl !== 'knife';
+    else if (part.toggle === 'batL') hide = a.hideKnife || a.wl !== 'bat';
     part.m.setMatrixAt(a.k, hide ? _zeroM : HR[part.node].matrixWorld);
   }
   if (BD.hatWho === a) bdayHatFollow();
@@ -6980,6 +7419,8 @@ function bdaySummon() {
     if (si === undefined) continue;
     const s = BD.seats[si];
     const wasPinned = a.pinned || a.state === 'trapped';
+    if (a.pick) allyPickAbort(a);
+    if (a.claim) { a.claim.claim = null; a.claim = null; }
     a.pinned = false; a.pinT = 0; a.swing = a.stab = a.target = a.helping = a.five = null; a.cd = 0;
     a.state = 'party'; a.hideBat = a.hideKnife = true; a.ready = 0;
     let x0 = a.x, z0 = a.z;
@@ -7831,9 +8272,11 @@ function goInside() {
   // 갇혀 있던 친구는 돌아온 뒤에 다시 나타난다
   let allyNext = G.allyNext;
   for (const a of ALLIES) if (a.state === 'trapped') allyNext = Math.min(allyNext, a.k);
+  const loot = lootSettle();   // 줍던 무기는 마저 쥐고, 바닥에 남은 것은 나와서 문 앞에 다시 놓는다
   const main = {
     playT: G.playT, ringNext: G.ringNext, ringT: G.ringT, allyNext, allyT: G.allyT, allyKills: G.allyKills, helped: G.helped,
-    allies: ALLIES.filter((a) => a.rescued && (a.state === 'fight' || a.state === 'five' || a.state === 'freed')).map((a) => ({ k: a.k, kills: a.kills, pendingFive: a.state !== 'fight' })),
+    allies: ALLIES.filter((a) => a.rescued && (a.state === 'fight' || a.state === 'five' || a.state === 'freed')).map((a) => ({ k: a.k, kills: a.kills, pendingFive: a.state !== 'fight', wr: a.wr, wl: a.wl })),
+    loot,
     face: faceBloodN, shirt: shirtBloodN, bday: { left: BD.left, ready: BD.ready },
   };
   const sauna = HOUSE.enter.entrance === SAUNA;
@@ -7900,10 +8343,15 @@ function setupReturn(L) {
     a.yaw = Math.atan2(spots[i][0] * 0.35, 1); a.cd = 0.25; a.tgtT = 0; a.helpCD = 0; a.fightAt = 0;
     a.pose.fill(0); a.pose[P.HY] = M.HIP_Y;
     setAllyFace(a.k, false);
+    a.wr = q.wr === 'sg' || q.wr === 'tube' ? q.wr : 'bat';
+    a.wl = q.wl === 'bat' ? 'bat' : 'knife';
   });
   if (m.bday && Number.isFinite(+m.bday.left)) { BD.left = clamp(Math.round(+m.bday.left), 0, 5); BD.quietReady = !!m.bday.ready; }
   GUARD.bear = Math.PI;
   placeWaitingCrowd(18 + 4 * saved.length);
+  // 들어가기 전 바닥에 남아 있던 무기는 문 앞에 다시 놓임
+  const lk = Array.isArray(m.loot) ? m.loot.filter((k) => k === 'sg' || k === 'tube' || k === 'bat').slice(0, 6) : [];
+  lk.forEach((kind, i) => lootPlace(kind, ME.x + (i % 2 ? -1 : 1) * rand(0.7, 1.5), ME.z + rand(1.7, 2.5)));
   // 집 안에서 들고 나온 산탄총
   if (fromSauna) {
     const shells = clamp(m.shells | 0, 0, 30);
@@ -7990,7 +8438,7 @@ function simulate(dt) {
   crowdSim(dt);
   bdaySim(dt);
   if (!BD.on) bdayCheckReady();
-  if (G.state !== 'back' && G.state !== 'enter') allySim(dt);
+  if (G.state !== 'back' && G.state !== 'enter') { lootSim(dt); allySim(dt); }
   if (G.state === 'play') { combatSim(dt); sgTick(dt); streetRocketTick(dt); }
   dangerSim(dt);
   burstSim(dt);
@@ -8126,6 +8574,8 @@ window.__fh = {
   carePosterCanvas: () => carePosterTex.image,
   startIntro, drop, startEnding, restart,
   house: HOUSE, sg: SG, houseHide, houseAppear, startEnterHouse, setupReturn, resumeFromHouse, sgEquip, sgDiscard, linkRead,
+  loot: LOOT, lootPlace, lootSettle, rocketDiscard, equipStreetRockets, streetRocket, allyWep, squadW,
+  arm(k, wr, wl) { const a = ALLIES[k]; if (wr) a.wr = wr; if (wl) a.wl = wl; return a; },
   spawn(n, kind = 0) { for (let i = 0; i < n; i++) spawnOne(kind); },
   near(n, r = 2.5) { for (let i = 0; i < n; i++) { const a = rand(0, TAU); const p = newPerson(ME.x + Math.sin(a) * r, ME.z + Math.cos(a) * r, { state: 'chase', yaw: a + Math.PI }); if (p) p.speakCD = rand(0, 1); } },
 };
